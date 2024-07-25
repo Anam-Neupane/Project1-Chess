@@ -1,4 +1,3 @@
-
 #include <raylib.h>
 #include <cstddef>
 #include "button.hpp"
