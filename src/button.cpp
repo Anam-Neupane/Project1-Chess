@@ -34,3 +34,27 @@ bool Button::isPressed(Vector2 mousePos , bool mousePressed)
     
     return false;
 }
+
+figure::figure(const char *imagepath, float scale)
+{
+   
+    Image Figure1 = LoadImage(imagepath); 
+
+    int originalWidth = Figure1.width;    
+    int originalHeight = Figure1.height;
+
+    int newWidth = static_cast<int>(originalWidth * scale);
+    int newHeight = static_cast<int>(originalHeight* scale);
+    ImageResize(&Figure1,newWidth,newHeight);
+    figimg = LoadTextureFromImage(Figure1);
+    UnloadImage(Figure1);
+}
+
+figure::~figure()
+{
+    UnloadTexture(figimg);
+}
+void figure::Draw()
+{
+    DrawTexture(figimg,0,0,WHITE);
+}

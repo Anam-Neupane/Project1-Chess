@@ -41,7 +41,8 @@ int main()
     bool exit = false;
 
     // Game textures
-    Texture2D tpieces = LoadTexture("resource\\figure1.png");
+
+    figure tpieces("resource\\figure1.png",0.4);
     Texture2D boardTexture = LoadTexture("resource\\board0.png");
 
     // Current game state
@@ -89,7 +90,7 @@ int main()
             // Draw the game screen
             
             DrawTexture(boardTexture, 0, 0, WHITE);
-            DrawTexture(tpieces, 5, 5, WHITE);
+            tpieces.Draw();
         }
 
         // End drawing
@@ -98,7 +99,6 @@ int main()
 
     // Unload the textures and close the window
     UnloadTexture(background);
-    UnloadTexture(tpieces);
     UnloadTexture(boardTexture);
     CloseWindow();
 

@@ -19,3 +19,13 @@ class Button
 
     bool isPressed(Vector2 mousePos,bool mousePressed);
 };
+class figure
+{
+    private:
+    Texture2D figimg;
+
+    public:
+    figure(const char* imagepath,float scale);
+    ~figure();
+    void Draw();
+};
