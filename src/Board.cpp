@@ -33,8 +33,8 @@ void LoadPieces() {
 
 
             //for resizing the pieces cuz it's too biggggg....
-                int newWidth = static_cast<int>(pieceWidth * 0.4);
-                int newHeight = static_cast<int>(pieceHeight* 0.4);
+                int newWidth = static_cast<int>(pieceWidth * 0.38);
+                int newHeight = static_cast<int>(pieceHeight* 0.38);
                 ImageResize(&pieceImage, newWidth, newHeight);
 
 
@@ -54,7 +54,7 @@ void LoadPieces() {
                 Piece piece;
                 piece.type = abs(pieceType) - 1;
                 piece.color = (pieceType > 0) ? 0 : 1;
-                piece.position = Vector2{((float)x*boardWidth)/8, ((float)y*boardHeight)/8};
+                piece.position = Vector2{(((float)x*boardWidth)/8)-7, (((float)y*boardHeight)/8)+34};
                 piece.texture = pieceTextures[piece.color * pieceTypes + piece.type];
                 pieces.push_back(piece);
             }
