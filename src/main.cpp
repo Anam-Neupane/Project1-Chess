@@ -2,7 +2,7 @@
 #include <cstddef>
 #include "button.hpp"
 #include <iostream>
-
+#include "Board.hpp"
 enum GameState
 {
     MAIN_MENU,
@@ -42,8 +42,9 @@ int main()
 
     // Game textures
 
-    figure tpieces("resource\\figure1.png",0.4);
+    // figure tpieces("resource\\figure1.png",0.4);
     Texture2D boardTexture = LoadTexture("resource\\board0.png");
+    LoadPieces();
 
     // Current game state
     GameState gameState = MAIN_MENU;
@@ -89,8 +90,8 @@ int main()
         {
             // Draw the game screen
             
-            DrawTexture(boardTexture, 0, 0, WHITE);
-            tpieces.Draw();
+            DrawTexture(boardTexture, 0, 55, WHITE);
+            DrawPieces();
         }
 
         // End drawing
@@ -100,6 +101,8 @@ int main()
     // Unload the textures and close the window
     UnloadTexture(background);
     UnloadTexture(boardTexture);
+    UnloadPieces();
+
     CloseWindow();
 
     return 0;
