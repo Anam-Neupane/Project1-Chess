@@ -80,8 +80,11 @@ void Board::UpdateDragging() {
     mousePos = GetMousePosition();
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         for (std::size_t i = 0; i < pieces.size(); i++) {
-            if (CheckCollisionPointRec(mousePos, Rectangle{pieces[i].position.x +boardPosition.x,
-                 pieces[i].position.y +boardPosition.y, squareSize, squareSize})) {
+
+            Rectangle pieceRect = {pieces[i].position.x,
+                 pieces[i].position.y , squareSize, squareSize}; 
+
+            if (CheckCollisionPointRec(mousePos,pieceRect)){
                 dragging = true;
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
@@ -95,8 +98,8 @@ void Board::UpdateDragging() {
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             dragging = false;
             // Snap to grid
-            pieces[draggedPieceIndex].position.x = (int)((pieces[draggedPieceIndex].position.x - boardPosition.x ) / squareSize) * squareSize + boardPosition.x;
-            pieces[draggedPieceIndex].position.y = (int)((pieces[draggedPieceIndex].position.y - boardPosition.y ) / squareSize) * squareSize + boardPosition.y;
+            pieces[draggedPieceIndex].position.x = (int)((pieces[draggedPieceIndex].position.x + boardPosition.x ) / squareSize) * squareSize - boardPosition.x;
+            pieces[draggedPieceIndex].position.y = (int)((pieces[draggedPieceIndex].position.y + boardPosition.y ) / squareSize) * squareSize - boardPosition.y;
 
             if (pieces[draggedPieceIndex].position.x < boardPosition.x) 
                 pieces[draggedPieceIndex].position.x = boardPosition.x;
