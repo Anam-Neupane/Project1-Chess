@@ -14,10 +14,10 @@ Board::~Board(){
 
 void Board::LoadPieces() {
 
-    Image piecesImage = LoadImage("resource\\figure1.png");
+    Image piecesImage = LoadImage("resource/figure1.png");
 
     if (piecesImage.data == nullptr) {//for checking if the file is loaded correctly.
-    std::cout << "Failed to load image: resource\\figure1.png" << std::endl;
+    std::cout << "Failed to load image: resource/figure1.png" << std::endl;
     return;
 }
 

@@ -13,7 +13,7 @@ enum GameState
 int main()
 {
     // Load the image for the main menu background
-    Image look = LoadImage("resource\\cut.png");
+    Image look = LoadImage("resource/cut.png");
 
     // Check if the image loaded successfully
     if (look.data == nullptr)
@@ -36,15 +36,15 @@ int main()
     Texture2D background = LoadTextureFromImage(look);
     UnloadImage(look); // Unload the image from RAM as we have the texture in VRAM now
 
-    Button startButton{"resource\\Picture1.png", {300, 300}, 0.5};
-    Button engineButton{"resource\\Picture2.png", {300, 450}, 0.5};
-    Button exitButton{"resource\\Picture3.png", {300, 600}, 0.5};
+    Button startButton{"resource/Picture1.png", {300, 300}, 0.5};
+    Button engineButton{"resource/Picture2.png", {300, 450}, 0.5};
+    Button exitButton{"resource/Picture3.png", {300, 600}, 0.5};
     bool exit = false;
 
     // Game textures
 
     // figure tpieces("resource\\figure1.png",0.4);
-    Texture2D boardTexture = LoadTexture("resource\\board0.png");
+    Texture2D boardTexture = LoadTexture("resource/board0.png");
     Board B1;
     B1.LoadPieces();
 
