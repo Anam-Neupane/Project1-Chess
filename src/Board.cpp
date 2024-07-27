@@ -1,27 +1,30 @@
-#include <raylib.h>
-#include <vector>
+
 #include <iostream>
 #include "Board.hpp"
+#include <raymath.h>
 
-std::vector<Piece> pieces;    
+   
+float squareSize=112.6;
 
-float squareSize=115;
+Board::Board() : dragging(false),draggedPieceIndex(-1) , boardPosition{0,55} {}
 
-void LoadPieces() {
+Board::~Board(){
+    UnloadPieces();
+}
+
+void Board::LoadPieces() {
 
     Image piecesImage = LoadImage("resource\\figure1.png");
-    Image Boardszz = LoadImage("resource\\board0.png");
 
     if (piecesImage.data == nullptr) {//for checking if the file is loaded correctly.
     std::cout << "Failed to load image: resource\\figure1.png" << std::endl;
     return;
 }
-    int boardWidth = Boardszz.width;
-    int boardHeight = Boardszz.height;
+
 
     // In figure1.png contains two rows of pieces: one for black and one for white
-    int pieceWidth = piecesImage.width / pieceTypes;
-    int pieceHeight = piecesImage.height / pieceColors;
+     pieceWidth = piecesImage.width / pieceTypes;
+     pieceHeight = piecesImage.height / pieceColors;
     
     Texture2D pieceTextures[pieceTypes * pieceColors];
 
@@ -51,25 +54,61 @@ void LoadPieces() {
         for (int x = 0; x < boardSize; x++) {
             int pieceType = initialBoard[y][x];
             if (pieceType != 0) {
-                Piece piece;
-                piece.type = abs(pieceType) - 1;
-                piece.color = (pieceType > 0) ? 0 : 1;
-                piece.position = Vector2{(((float)x*boardWidth)/8)-7, (((float)y*boardHeight)/8)+34};
-                piece.texture = pieceTextures[piece.color * pieceTypes + piece.type];
-                pieces.push_back(piece);
+
+                int type = abs(pieceType) - 1;
+                int color = (pieceType > 0) ? 0 : 1;
+                Vector2 position = {((x * squareSize) + boardPosition.x), ((y * squareSize) + boardPosition.y)};
+                Texture2D texture = pieceTextures[color * pieceTypes + type];
+                pieces.emplace_back(type, color, position,texture);
             }
         }
     }
 }
 
-void DrawPieces() {
+void Board::DrawPieces() {
     for (const auto& piece : pieces) {
         DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
     }
 }
-void UnloadPieces(){
+void Board::UnloadPieces(){
     for (auto& piece : pieces) {
         UnloadTexture(piece.texture);
     }
 }
+//For Drag and Drop (Basically moving)
+void Board::UpdateDragging() {
+    mousePos = GetMousePosition();
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        for (std::size_t i = 0; i < pieces.size(); i++) {
+            if (CheckCollisionPointRec(mousePos, Rectangle{pieces[i].position.x +boardPosition.x,
+                 pieces[i].position.y +boardPosition.y, squareSize, squareSize})) {
+                dragging = true;
+                draggedPieceIndex = i;
+                offset = Vector2Subtract(mousePos, pieces[i].position);
+                break;
+            }
+        }
+    }
 
+    if (dragging) {
+        pieces[draggedPieceIndex].position = Vector2Subtract(mousePos, offset);
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            dragging = false;
+            // Snap to grid
+            pieces[draggedPieceIndex].position.x = (int)((pieces[draggedPieceIndex].position.x - boardPosition.x ) / squareSize) * squareSize + boardPosition.x;
+            pieces[draggedPieceIndex].position.y = (int)((pieces[draggedPieceIndex].position.y - boardPosition.y ) / squareSize) * squareSize + boardPosition.y;
+
+            if (pieces[draggedPieceIndex].position.x < boardPosition.x) 
+                pieces[draggedPieceIndex].position.x = boardPosition.x;
+
+            if (pieces[draggedPieceIndex].position.y < boardPosition.y) 
+                pieces[draggedPieceIndex].position.y = boardPosition.y;
+
+            if (pieces[draggedPieceIndex].position.x >= boardPosition.x + 8 * squareSize) 
+                pieces[draggedPieceIndex].position.x = boardPosition.x + (8 - 1) * squareSize;
+
+            if (pieces[draggedPieceIndex].position.y >= boardPosition.y + 8 * squareSize) 
+                pieces[draggedPieceIndex].position.y = boardPosition.y + (8 - 1) * squareSize;
+        }
+    }
+}
