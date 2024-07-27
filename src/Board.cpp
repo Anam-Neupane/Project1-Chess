@@ -2,6 +2,7 @@
 #include <iostream>
 #include "Board.hpp"
 #include <raymath.h>
+#include <algorithm>
 
    
 float squareSize=112.6;
@@ -97,21 +98,19 @@ void Board::UpdateDragging() {
         pieces[draggedPieceIndex].position = Vector2Subtract(mousePos, offset);
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             dragging = false;
-            // Snap to grid
-            pieces[draggedPieceIndex].position.x = (int)((pieces[draggedPieceIndex].position.x + boardPosition.x ) / squareSize) * squareSize - boardPosition.x;
-            pieces[draggedPieceIndex].position.y = (int)((pieces[draggedPieceIndex].position.y + boardPosition.y ) / squareSize) * squareSize - boardPosition.y;
+            
+            float snappedX = roundf((pieces[draggedPieceIndex].position.x - boardPosition.x) / squareSize) * squareSize + boardPosition.x;
+            float snappedY = roundf((pieces[draggedPieceIndex].position.y - boardPosition.y) / squareSize) * squareSize + boardPosition.y;
 
-            if (pieces[draggedPieceIndex].position.x < boardPosition.x) 
-                pieces[draggedPieceIndex].position.x = boardPosition.x;
+            // Constrain snappedX to the board boundaries
+            if (snappedX < boardPosition.x) snappedX = boardPosition.x;
+            if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
 
-            if (pieces[draggedPieceIndex].position.y < boardPosition.y) 
-                pieces[draggedPieceIndex].position.y = boardPosition.y;
+            // Constrain snappedY to the board boundaries
+            if (snappedY < boardPosition.y) snappedY = boardPosition.y;
+            if (snappedY >= boardPosition.y + 8 * squareSize) snappedY = boardPosition.y + (8 - 1) * squareSize;
 
-            if (pieces[draggedPieceIndex].position.x >= boardPosition.x + 8 * squareSize) 
-                pieces[draggedPieceIndex].position.x = boardPosition.x + (8 - 1) * squareSize;
-
-            if (pieces[draggedPieceIndex].position.y >= boardPosition.y + 8 * squareSize) 
-                pieces[draggedPieceIndex].position.y = boardPosition.y + (8 - 1) * squareSize;
+            pieces[draggedPieceIndex].position = Vector2{snappedX, snappedY};
         }
     }
-}
+ }
