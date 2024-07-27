@@ -7,7 +7,7 @@
    
 float squareSize=112.6;
 
-Board::Board() : dragging(false),draggedPieceIndex(-1) , boardPosition{0,55} {}
+Board::Board() : dragging(false),draggedPieceIndex(-1) , boardPosition{0,55}, CurrentPlayer(1) {}
 
 Board::~Board(){
     UnloadPieces();
@@ -82,6 +82,9 @@ void Board::UpdateDragging() {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         for (std::size_t i = 0; i < pieces.size(); i++) {
 
+            if(pieces[i].color != CurrentPlayer) 
+            continue;
+
             Rectangle pieceRect = {pieces[i].position.x,
                  pieces[i].position.y , squareSize, squareSize}; 
 
@@ -111,6 +114,8 @@ void Board::UpdateDragging() {
             if (snappedY >= boardPosition.y + 8 * squareSize) snappedY = boardPosition.y + (8 - 1) * squareSize;
 
             pieces[draggedPieceIndex].position = Vector2{snappedX, snappedY};
+
+            CurrentPlayer = (CurrentPlayer +1) % 2;
         }
     }
  }
