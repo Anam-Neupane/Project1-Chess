@@ -82,16 +82,14 @@ void Board::UpdateDragging() {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         for (std::size_t i = 0; i < pieces.size(); i++) {
 
-            if(pieces[i].color != CurrentPlayer) 
-            continue;
-
             Rectangle pieceRect = {pieces[i].position.x,
                  pieces[i].position.y , squareSize, squareSize}; 
 
-            if (CheckCollisionPointRec(mousePos,pieceRect)){
+            if (CheckCollisionPointRec(mousePos,pieceRect)&&(pieces[i].color == CurrentPlayer) ){
                 dragging = true;
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
+                originalPosition = pieces[i].position;
                 break;
             }
         }
@@ -105,17 +103,37 @@ void Board::UpdateDragging() {
             float snappedX = roundf((pieces[draggedPieceIndex].position.x - boardPosition.x) / squareSize) * squareSize + boardPosition.x;
             float snappedY = roundf((pieces[draggedPieceIndex].position.y - boardPosition.y) / squareSize) * squareSize + boardPosition.y;
 
-            // Constrain snappedX to the board boundaries
-            if (snappedX < boardPosition.x) snappedX = boardPosition.x;
-            if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
 
-            // Constrain snappedY to the board boundaries
-            if (snappedY < boardPosition.y) snappedY = boardPosition.y;
-            if (snappedY >= boardPosition.y + 8 * squareSize) snappedY = boardPosition.y + (8 - 1) * squareSize;
+            bool outOfBounds = (snappedX < boardPosition.x || snappedX >= (boardPosition.x + 8* squareSize) ||
+                                 snappedY < boardPosition.y || snappedY >= (boardPosition.y + 8 * squareSize));
 
-            pieces[draggedPieceIndex].position = Vector2{snappedX, snappedY};
+            if(outOfBounds){
+                pieces[draggedPieceIndex].position = originalPosition;
+            }                     
+            else{
+                // Constrain snappedX to the board boundaries(This also works)
+                // if (snappedX < boardPosition.x) snappedX = boardPosition.x;
+                // if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
+                //This is shorter form 
+                snappedX = std::max(boardPosition.x, std::min(snappedX, boardPosition.x + 7 * squareSize));
 
-            CurrentPlayer = (CurrentPlayer +1) % 2;
-        }
+                // Constrain snappedY to the board boundaries  
+                // if (snappedY < boardPosition.y) snappedY = boardPosition.y;
+                // if (snappedY >= boardPosition.y + 8 * squareSize) snappedY = boardPosition.y + (8 - 1) * squareSize;
+                //This is shorter form 
+                snappedY = std::max(boardPosition.y, std::min(snappedY, boardPosition.y + 7 * squareSize));
+
+                Vector2 newPosition = {snappedX,snappedY};
+
+                if(originalPosition.x != newPosition.x || originalPosition.y != newPosition.y){
+
+                    pieces[draggedPieceIndex].position = newPosition;
+                    CurrentPlayer = (CurrentPlayer +1) % 2;
+              }
+            else{ 
+            pieces[draggedPieceIndex].position = originalPosition;
+          }
+        } 
+      }
     }
  }

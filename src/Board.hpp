@@ -1,35 +1,26 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+
 #include <raylib.h>
 #include <vector>
+#include "Piece.hpp"
 
 const int boardSize = 8;
 const int pieceTypes = 6; //  rook, knight, bishop, queen, king, pawn
 const int pieceColors = 2; // black, white
-class Piece {
-
-    public:
-
-        int type;  // 0 to 5 for rook, knight, bishop, queen, king, pawn
-        int color; // 0 for black, 1 for white
-        Vector2 position;
-        Texture2D texture;
-    
-        Piece(int t,int c, Vector2 pos ,Texture2D tex):type(t),color(c),position(pos),texture(tex){}
-
-};
 class Board{
 
     private:
 
-        std::vector<Piece> pieces; 
+        std::vector<Piece> pieces; //class object;
         float pieceWidth;
         float pieceHeight;
         Vector2 mousePos;
         bool dragging;
         int draggedPieceIndex;
         Vector2 boardPosition;
+        Vector2 originalPosition;
         Vector2 offset;
         int CurrentPlayer;  // 0 for white and 1 for black
 
