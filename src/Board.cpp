@@ -3,11 +3,12 @@
 #include "Board.hpp"
 #include <raymath.h>
 #include <algorithm>
+#include "MoveValid.hpp"
+//for global
+float squareSize = 112.6;
+Vector2 boardPosition = {0, 55};
 
-   
-float squareSize=112.6;
-
-Board::Board() : dragging(false),draggedPieceIndex(-1) , boardPosition{0,55}, CurrentPlayer(1) {}
+Board::Board() : dragging(false),draggedPieceIndex(-1), CurrentPlayer(1) {}
 
 Board::~Board(){
     UnloadPieces();
@@ -56,10 +57,10 @@ void Board::LoadPieces() {
             int pieceType = initialBoard[y][x];
             if (pieceType != 0) {
 
-                int type = abs(pieceType) - 1;
+                int type = abs(pieceType);
                 int color = (pieceType > 0) ? 0 : 1;
                 Vector2 position = {((x * squareSize) + boardPosition.x), ((y * squareSize) + boardPosition.y)};
-                Texture2D texture = pieceTextures[color * pieceTypes + type];
+                Texture2D texture = pieceTextures[color * pieceTypes + (type-1)];
                 pieces.emplace_back(type, color, position,texture);
             }
         }
@@ -123,17 +124,24 @@ void Board::UpdateDragging() {
                 //This is shorter form 
                 snappedY = std::max(boardPosition.y, std::min(snappedY, boardPosition.y + 7 * squareSize));
 
-                Vector2 newPosition = {snappedX,snappedY};
+                Vector2 newPosition = Vector2 {snappedX,snappedY};
 
                 if(originalPosition.x != newPosition.x || originalPosition.y != newPosition.y){
+                    if(MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)){
 
                     pieces[draggedPieceIndex].position = newPosition;
                     CurrentPlayer = (CurrentPlayer +1) % 2;
-              }
+                  }
+               else{ 
+                    pieces[draggedPieceIndex].position = originalPosition;
+                }
+          } 
             else{ 
             pieces[draggedPieceIndex].position = originalPosition;
-          }
-        } 
+            } 
       }
     }
- }
+  }
+}
+
+            

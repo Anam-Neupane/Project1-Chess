@@ -3,19 +3,22 @@
 
 #include <raylib.h>
 
+extern float squareSize;
+extern Vector2 boardPosition;
+
 enum PieceType {
-    PAWN = 0,
+    ROOK = 1,
     KNIGHT,
     BISHOP,
-    ROOK,
     QUEEN,
-    KING
+    KING,
+    PAWN
 };
 class Piece {
 
     public:
 
-        int type;  // 0 to 5 for rook, knight, bishop, queen, king, pawn
+        int type;  // 1 to 6 for rook, knight, bishop, queen, king, pawn
         int color; // 0 for black, 1 for white
         Vector2 position;
         Texture2D texture;

@@ -31,7 +31,7 @@ bool Button::isPressed(Vector2 mousePos , bool mousePressed)
     if(CheckCollisionPointRec(mousePos,rect)&& mousePressed){
         return true;
     }
-    
+
     return false;
 }
 
