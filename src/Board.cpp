@@ -83,6 +83,13 @@ void Board::UpdateDragging() {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         for (std::size_t i = 0; i < pieces.size(); i++) {
 
+            // For Skiping Captured Pieces 
+            if(pieces[i].captured)
+            {
+                continue;
+            }
+            /*---------------------------------------------*/
+
             Rectangle pieceRect = {pieces[i].position.x,
                  pieces[i].position.y , squareSize, squareSize}; 
 
@@ -91,6 +98,12 @@ void Board::UpdateDragging() {
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
                 originalPosition = pieces[i].position;
+
+                // Move the dragged piece to the back of the vector so it is drawn last
+                Piece draggedPiece = pieces[i];
+                pieces.erase(pieces.begin() + i);
+                pieces.push_back(draggedPiece);
+                draggedPieceIndex = pieces.size() - 1; // Update the index after moving the piece
                 break;
             }
         }
@@ -127,7 +140,16 @@ void Board::UpdateDragging() {
                 Vector2 newPosition = Vector2 {snappedX,snappedY};
 
                 if(originalPosition.x != newPosition.x || originalPosition.y != newPosition.y){
+                    //Checking if move is valid.
                     if(MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)){
+                    
+                        //For capturing 
+                        for (std::size_t i = 0; i < pieces.size(); ++i) {
+                        if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
+                            CapturePiece(i);  // Capture the piece
+                            break;
+                        }
+                    }
 
                     pieces[draggedPieceIndex].position = newPosition;
                     CurrentPlayer = (CurrentPlayer +1) % 2;
@@ -143,5 +165,32 @@ void Board::UpdateDragging() {
     }
   }
 }
+
+void Board::CapturePiece(int capturedPieceIndex)
+{
+        float offset = 20.0f; 
+    //It will move piece outside
+
+            if (pieces[capturedPieceIndex].color == 1) { // Captured by black
+            pieces[capturedPieceIndex].position.x = boardPosition.x + 7 * squareSize + squareSize + offset * whiteCapturedCount;
+            pieces[capturedPieceIndex].position.y = boardPosition.y + offset;
+
+            // pieces[capturedPieceIndex].position.x = boardPosition.x + 8.7 * squareSize + offset;
+            // pieces[capturedPieceIndex].position.y = boardPosition.y + squareSize + squareSize + offset*whiteCapturedCount; 
+
+            whiteCapturedCount++;
+            } 
+            else { // Captured by white
+            pieces[capturedPieceIndex].position.x = boardPosition.x + 7 * squareSize + squareSize + offset * blackCapturedCount;
+            pieces[capturedPieceIndex].position.y = boardPosition.y + 7 * squareSize + offset;
+            // pieces[capturedPieceIndex].position.x = boardPosition.x + 8 * squareSize + offset;
+            // pieces[capturedPieceIndex].position.y = boardPosition.y + squareSize + squareSize + offset*blackCapturedCount;
+
+            blackCapturedCount++;
+            }
+            pieces[capturedPieceIndex].captured = true;
+
+}
+
 
             

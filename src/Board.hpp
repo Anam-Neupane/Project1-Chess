@@ -18,7 +18,7 @@ class Board{
         int draggedPieceIndex;
         Vector2 originalPosition;
         Vector2 offset;
-        int CurrentPlayer;  // 0 for white and 1 for black
+        int CurrentPlayer;  // 0 for black and 1 for white
 
         const int initialBoard[boardSize][boardSize] = {
         { 1,  2,  3,  4,  5,  3,  2,  1},
@@ -31,6 +31,10 @@ class Board{
         {-1, -2, -3, -4, -5, -3, -2, -1}
         };
 
+        //For capturing and recording.
+        int whiteCapturedCount = 0;
+        int blackCapturedCount = 0;
+
     public:
 
         Board();
@@ -40,6 +44,7 @@ class Board{
         void DrawPieces();
         void UnloadPieces();
         void UpdateDragging();
+        void CapturePiece(int capturedPieceIndex);
 };
 
 #endif // BOARD_H
