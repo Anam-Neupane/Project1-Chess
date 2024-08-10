@@ -42,6 +42,8 @@ int main()
     // Initialize the window with the image size
     InitWindow(screenWidth, screenHeight, "♟️ Chess");
 
+    CameraHandler camera(screenWidth,screenHeight);
+    
     // Set the target FPS
     SetTargetFPS(60);
 
@@ -66,7 +68,7 @@ int main()
 
     while (!WindowShouldClose() && exit == false)
     {
-
+        camera.UpdateCamera();
         
         Vector2 mousePosition = GetMousePosition();
         bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
@@ -142,12 +144,14 @@ int main()
             }
             // Draw the game screen
             if(!Paused){
+                camera.BeginCamera();
             DrawTexture(boardTexture, 0, 55, WHITE);
             DrawRectangle(913,55,180,910,LIGHTGRAY);
             DrawRectangle(1100,55,700,455,DARKBROWN);
             DrawRectangle(1100,510,700,455,BEIGE);
             B1.UpdateDragging();
             B1.DrawPieces(); 
+                camera.EndCamera();
             }
         }
 
