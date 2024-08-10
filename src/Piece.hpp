@@ -28,13 +28,4 @@ class Piece {
         {}
 
 };
-class CameraHandler {
-public:
-    Camera2D camera;
-    
-    CameraHandler(int screenWidth, int screenHeight);
-    void UpdateCamera();
-    void BeginCamera();
-    void EndCamera();
-};
 #endif // PIECE_HPP
