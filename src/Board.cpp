@@ -8,7 +8,30 @@
 float squareSize = 112.6;
 Vector2 boardPosition = {0, 55};
 
-Board::Board() : dragging(false),draggedPieceIndex(-1), CurrentPlayer(1) {}
+int Board::GetPieceValue(int pieceType)
+{
+    switch(pieceType)
+    {
+        case PAWN: return 1;
+        case KNIGHT: return 3;
+        case BISHOP: return 3;
+        case ROOK: return 5;
+        case QUEEN: return 9;
+        default: return 0;
+    }
+}
+
+Board::Board() : dragging(false), draggedPieceIndex(-1), CurrentPlayer(1),
+    whiteScorePosition({boardPosition.x+5 , boardPosition.y + squareSize * 8 + 10}),//Initialization of the Score Position
+    blackScorePosition({boardPosition.x+5 , boardPosition.y - 25})  {}
+
+void Board::DrawScores() {//Drawing scores
+    std::string whiteScoreText = "White : " + std::to_string(whiteScore);
+    std::string blackScoreText = "Black : " + std::to_string(blackScore);
+
+    DrawText(whiteScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
+    DrawText(blackScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
+}
 
 Board::~Board(){
     UnloadPieces();
@@ -71,6 +94,7 @@ void Board::DrawPieces() {
     for (const auto& piece : pieces) {
         DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
     }
+    DrawScores();
 }
 void Board::UnloadPieces(){
     for (auto& piece : pieces) {
@@ -165,32 +189,37 @@ void Board::UpdateDragging() {
     }
   }
 }
-
 void Board::CapturePiece(int capturedPieceIndex)
 {
-        float offset = 20.0f; 
-    //It will move piece outside
+    float offset = 92.0; // Space between pieces in the captured section
+    int piecesPerRow = 7; // Number of pieces per row in the captured section
+    
+    int pieceValue = GetPieceValue(pieces[capturedPieceIndex].type);
 
-            if (pieces[capturedPieceIndex].color == 1) { // Captured by black
-            pieces[capturedPieceIndex].position.x = boardPosition.x + 7 * squareSize + squareSize + offset * whiteCapturedCount;
-            pieces[capturedPieceIndex].position.y = boardPosition.y + offset;
+    if (pieces[capturedPieceIndex].color == 1) { // Captured by black
+    blackScore += pieceValue;
+        int row = whiteCapturedCount / piecesPerRow;
+        int col = whiteCapturedCount % piecesPerRow;
 
-            // pieces[capturedPieceIndex].position.x = boardPosition.x + 8.7 * squareSize + offset;
-            // pieces[capturedPieceIndex].position.y = boardPosition.y + squareSize + squareSize + offset*whiteCapturedCount; 
+        pieces[capturedPieceIndex].position.x = boardPosition.x + 10 * squareSize + offset * col;
+        pieces[capturedPieceIndex].position.y = boardPosition.y + row * squareSize + offset;
 
-            whiteCapturedCount++;
-            } 
-            else { // Captured by white
-            pieces[capturedPieceIndex].position.x = boardPosition.x + 7 * squareSize + squareSize + offset * blackCapturedCount;
-            pieces[capturedPieceIndex].position.y = boardPosition.y + 7 * squareSize + offset;
-            // pieces[capturedPieceIndex].position.x = boardPosition.x + 8 * squareSize + offset;
-            // pieces[capturedPieceIndex].position.y = boardPosition.y + squareSize + squareSize + offset*blackCapturedCount;
+        whiteCapturedCount++;
+    } else { // Captured by white
+    whiteScore += pieceValue;
+        int row = blackCapturedCount / piecesPerRow;
+        int col = blackCapturedCount % piecesPerRow;
 
-            blackCapturedCount++;
-            }
-            pieces[capturedPieceIndex].captured = true;
+        pieces[capturedPieceIndex].position.x = boardPosition.x + 10 * squareSize + offset * col;
+        pieces[capturedPieceIndex].position.y = boardPosition.y + 7.2 * squareSize - (row * squareSize + offset);
 
+        blackCapturedCount++;
+    }
+    pieces[capturedPieceIndex].captured = true;
 }
+
+
+
 
 
             

@@ -34,6 +34,13 @@ class Board{
         //For capturing and recording.
         int whiteCapturedCount = 0;
         int blackCapturedCount = 0;
+        int whiteScore = 0;
+        int blackScore = 0;
+        int GetPieceValue(int pieceType);
+
+        //For showing the points
+        Vector2 whiteScorePosition;
+        Vector2 blackScorePosition;
 
     public:
 
@@ -45,6 +52,7 @@ class Board{
         void UnloadPieces();
         void UpdateDragging();
         void CapturePiece(int capturedPieceIndex);
+        void DrawScores();
 };
 
 #endif // BOARD_H

@@ -8,8 +8,21 @@ enum GameState
     MAIN_MENU,
     GAME
 };
+bool Paused = false;
 
-
+void ToggleFullScreenWindow(int WindowWidth,int Windowheight)
+{
+    if(!IsWindowFullscreen())
+    {
+        int monitor = GetCurrentMonitor();
+        SetWindowSize(GetMonitorWidth(monitor),GetMonitorHeight(monitor));
+        ToggleFullscreen();
+    }
+    else{
+        ToggleFullscreen();
+        SetWindowSize(WindowWidth,Windowheight);
+    }
+}
 int main()
 {
     // Load the image for the main menu background
@@ -53,6 +66,8 @@ int main()
 
     while (!WindowShouldClose() && exit == false)
     {
+
+        
         Vector2 mousePosition = GetMousePosition();
         bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
@@ -75,10 +90,23 @@ int main()
                 exit = true;
             }
         }
+        
+        if(gameState == GAME)
+        {        
+               if(IsKeyPressed(KEY_F))
+            {   
+                ToggleFullScreenWindow(screenWidth,screenHeight);
+            }
+            if(IsKeyPressed(KEY_SPACE))
+            {
+                Paused = !Paused;
+            }
+        
+        }
 
         // Start drawing
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
 
         if (gameState == MAIN_MENU)
         {
@@ -90,11 +118,37 @@ int main()
         }
         else if (gameState == GAME)
         {
+
+            if(Paused)
+            {
+                int windowWidth = GetScreenWidth();  // Get the current window width
+                int windowHeight = GetScreenHeight();  // Get the current window height
+                
+                const char* pausedText = "Paused";
+                const char* resumeText = "Press Space to Resume.......";
+                
+                int pausedTextWidth = MeasureText(pausedText, 40);
+                int resumeTextWidth = MeasureText(resumeText, 40);
+                
+                int pausedTextX = (windowWidth - pausedTextWidth) / 2;
+                int pausedTextY = (windowHeight - 40) / 2 - 30;
+                
+                int resumeTextX = (windowWidth - resumeTextWidth) / 2;
+                int resumeTextY = pausedTextY + 50;
+
+                DrawText(pausedText, pausedTextX, pausedTextY, 40, GREEN);
+                DrawText(resumeText, resumeTextX, resumeTextY, 40, GRAY);
+
+            }
             // Draw the game screen
-            
+            if(!Paused){
             DrawTexture(boardTexture, 0, 55, WHITE);
+            DrawRectangle(913,55,180,910,LIGHTGRAY);
+            DrawRectangle(1100,55,700,455,DARKBROWN);
+            DrawRectangle(1100,510,700,455,BEIGE);
             B1.UpdateDragging();
-            B1.DrawPieces();
+            B1.DrawPieces(); 
+            }
         }
 
         // End drawing

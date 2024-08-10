@@ -57,6 +57,14 @@ bool MoveValidator::IsPawnMoveValid(const Piece& piece, const Vector2& newPositi
 
 
 bool MoveValidator::IsMoveValid(const Piece& piece, const Vector2& newPosition, const std::vector<Piece>& pieces, const Vector2 & originalPosition) {
+    
+    for (const auto& otherPiece : pieces){
+            if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.type == KING) {
+
+            return false; // Invalid move, king can't be captured
+        }
+    }
+    
     switch (piece.type) {
         case PAWN:
             return IsPawnMoveValid(piece, newPosition, pieces, originalPosition);
