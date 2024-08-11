@@ -4,7 +4,7 @@
 #include <raymath.h>
 #include <algorithm>
 #include "MoveValid.hpp"
-//for global
+//For Global variable
 float squareSize = 112.6;
 Vector2 boardPosition = {0, 55};
 
@@ -20,10 +20,13 @@ int Board::GetPieceValue(int pieceType)
         default: return 0;
     }
 }
-
+//Constructor
 Board::Board() : dragging(false), draggedPieceIndex(-1), CurrentPlayer(1),
     whiteScorePosition({boardPosition.x+5 , boardPosition.y + squareSize * 8 + 10}),//Initialization of the Score Position
-    blackScorePosition({boardPosition.x+5 , boardPosition.y - 25})  {}
+    blackScorePosition({boardPosition.x+5 , boardPosition.y - 25}), 
+    //Initialization of Player's Turn Position
+    playerturnPosition({boardPosition.x + squareSize * 8 + 19, boardPosition.y + squareSize * 4 - 29})
+    {}
 
 void Board::DrawScores() {//Drawing scores
     std::string whiteScoreText = "White : " + std::to_string(whiteScore);
@@ -31,6 +34,19 @@ void Board::DrawScores() {//Drawing scores
 
     DrawText(whiteScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
     DrawText(blackScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
+}
+void Board::DrawPlayer(){
+    if(CurrentPlayer)
+    {
+        DrawRectangle(playerturnPosition.x-5, playerturnPosition.y-6, 180, 80, BLACK);
+        DrawRectangle(playerturnPosition.x-5, playerturnPosition.y, 180, 68, WHITE);
+        DrawText("WHITE's \n \n  Turn", playerturnPosition.x, playerturnPosition.y, 40, BLACK);
+    }
+    else
+    {   
+        DrawRectangle(playerturnPosition.x-5, playerturnPosition.y-6, 180, 80, BLACK);
+        DrawText("BLACK's \n \n  Turn", playerturnPosition.x, playerturnPosition.y, 40, WHITE);
+    }
 }
 
 Board::~Board(){

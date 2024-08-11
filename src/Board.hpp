@@ -42,6 +42,9 @@ class Board{
         Vector2 whiteScorePosition;
         Vector2 blackScorePosition;
 
+        //For showing the Player
+        Vector2 playerturnPosition;
+
     public:
 
         Board();
@@ -53,6 +56,7 @@ class Board{
         void UpdateDragging();
         void CapturePiece(int capturedPieceIndex);
         void DrawScores();
+        void DrawPlayer();
 };
 
 #endif // BOARD_H

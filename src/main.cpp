@@ -143,11 +143,12 @@ int main()
             // Draw the game screen
             if(!Paused){
             DrawTexture(boardTexture, 0, 55, WHITE);
-            DrawRectangle(913,55,180,910,LIGHTGRAY);
+            DrawRectangle(914,55,180,910,BROWN);
             DrawRectangle(1100,55,700,455,DARKBROWN);
             DrawRectangle(1100,510,700,455,BEIGE);
             B1.UpdateDragging();
-            B1.DrawPieces(); 
+            B1.DrawPieces();
+            B1.DrawPlayer(); 
             }
         }
 
