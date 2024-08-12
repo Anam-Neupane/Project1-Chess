@@ -4,6 +4,7 @@
 #include "Piece.hpp"
 #include <vector>
 
+
 class MoveValidator {
 private:
     static bool Vector2Equals(const Vector2 &a, const Vector2 &b, float tolerance = 0.01f);
@@ -13,8 +14,9 @@ private:
     static bool IsQueenMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
     static bool IsKnightMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
     static bool IsKingMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
+    static bool IsInCheck(int kingColor,std::vector<Piece> &pieces);
 public:
-    static bool IsMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
+    static bool IsMoveValid( Piece &piece, const Vector2 &newPosition,  std::vector<Piece> &pieces, const Vector2 &originalPosition);
 };
 
 #endif // MOVEVALID_HPP

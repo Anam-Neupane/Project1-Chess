@@ -107,11 +107,12 @@ void Board::LoadPieces() {
 }
 
 void Board::DrawPieces() {
+    DrawScores();
     for (const auto& piece : pieces) {
         DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
-    }
-    DrawScores();
+    } 
 }
+
 void Board::UnloadPieces(){
     for (auto& piece : pieces) {
         UnloadTexture(piece.texture);
@@ -133,7 +134,7 @@ void Board::UpdateDragging() {
             Rectangle pieceRect = {pieces[i].position.x,
                  pieces[i].position.y , squareSize, squareSize}; 
 
-            if (CheckCollisionPointRec(mousePos,pieceRect)&&(pieces[i].color == CurrentPlayer) ){
+            if (CheckCollisionPointRec(mousePos,pieceRect)){
                 dragging = true;
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
@@ -179,6 +180,9 @@ void Board::UpdateDragging() {
 
                 Vector2 newPosition = Vector2 {snappedX,snappedY};
 
+                //Checking the turn of the player(UI improvement)
+                if(pieces[draggedPieceIndex].color == CurrentPlayer){
+
                 if(originalPosition.x != newPosition.x || originalPosition.y != newPosition.y){
                     //Checking if move is valid.
                     if(MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)){
@@ -190,7 +194,6 @@ void Board::UpdateDragging() {
                             break;
                         }
                     }
-
                     pieces[draggedPieceIndex].position = newPosition;
                     CurrentPlayer = (CurrentPlayer +1) % 2;
                   }
@@ -201,10 +204,15 @@ void Board::UpdateDragging() {
             else{ 
             pieces[draggedPieceIndex].position = originalPosition;
             } 
+
+        } else {
+            pieces[draggedPieceIndex].position = originalPosition;//Not the player turn // Snaps back to place.
+        } 
       }
     }
   }
 }
+
 void Board::CapturePiece(int capturedPieceIndex)
 {
     float offset = 92.0; // Space between pieces in the captured section
@@ -233,9 +241,4 @@ void Board::CapturePiece(int capturedPieceIndex)
     }
     pieces[capturedPieceIndex].captured = true;
 }
-
-
-
-
-
             

@@ -225,34 +225,118 @@ bool MoveValidator::IsKingMoveValid(const Piece &piece, const Vector2 &newPositi
                 }
             }
         }
+
+        //To Prevent two Kings from being adjacent
+        for (const auto& otherPiece : pieces) 
+        {
+            if (otherPiece.type == KING && otherPiece.color != piece.color) 
+            {
+                // Converting the opponent King's position to board coordinates
+                int opponentKingX = static_cast<int>((otherPiece.position.x - boardPosition.x) / squareSize);
+                int opponentKingY = static_cast<int>((otherPiece.position.y - boardPosition.y) / squareSize);
+
+                // Checking if the new position is adjacent to the opponent King
+                if (std::abs(newX - opponentKingX) <= 1 && std::abs(newY - opponentKingY) <= 1) 
+                {
+                    return false; // Invalid move, Kings cannot be adjacent
+                }
+            }
+        }
+
         return true; // Valid move, no piece blocking the path
     }
     return false;// Invalid move for King(only one square.)
 }
 
-bool MoveValidator::IsMoveValid(const Piece& piece, const Vector2& newPosition, const std::vector<Piece>& pieces, const Vector2 & originalPosition) {
-    
-    for (const auto& otherPiece : pieces){
-            if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.type == KING) {
-            return false; // Invalid move, king can't be captured
+bool MoveValidator::IsInCheck(int kingColor, std::vector<Piece>& pieces) {
+
+    //To find the king of the specified color
+    Piece* king = nullptr;
+    for (auto& piece : pieces) {
+        if (piece.type == KING && piece.color == kingColor) {
+            king = &piece;
+            break;
         }
     }
-    
+
+    // Check if any opponent's piece can attack the king
+    for (auto& piece : pieces) {
+        if (piece.color != kingColor) { // Opponent's pieces
+            // Directly validate the move without checking for check condition
+            if (IsMoveValid(piece, king->position, pieces, piece.position)) {
+                std::cout << "King is in check by piece at: " << piece.position.x << ", " << piece.position.y << std::endl;
+                return true; // King is in check
+            }
+        }
+    }
+
+    return false; // No opponent piece can attack the king
+}
+
+bool MoveValidator::IsMoveValid(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, const Vector2& originalPosition) {
+
+    // Validate the move based on piece type rules
+    bool moveValid = false;
     switch (piece.type) {
         case PAWN:
-            return IsPawnMoveValid(piece,newPosition,pieces,originalPosition);
+            moveValid = IsPawnMoveValid(piece, newPosition, pieces, originalPosition);
+            break;
         case ROOK:
-            return IsRookMoveValid(piece,newPosition,pieces,originalPosition);
+            moveValid = IsRookMoveValid(piece, newPosition, pieces, originalPosition);
+            break;
         case BISHOP:
-            return IsBishopMoveValid(piece,newPosition,pieces,originalPosition);
+            moveValid = IsBishopMoveValid(piece, newPosition, pieces, originalPosition);
+            break;
         case QUEEN:
-            return IsQueenMoveValid(piece,newPosition,pieces,originalPosition);
+            moveValid = IsQueenMoveValid(piece, newPosition, pieces, originalPosition);
+            break;
         case KNIGHT:
-            return IsKnightMoveValid(piece,newPosition,pieces,originalPosition);
+            moveValid = IsKnightMoveValid(piece, newPosition, pieces, originalPosition);
+            break;
         case KING:
-            return IsKingMoveValid(piece,newPosition,pieces,originalPosition);
+            moveValid = IsKingMoveValid(piece, newPosition, pieces, originalPosition);
+            break;
         default:
-            std::cout << "Invalid move: Unknown piece type" << std::endl;
+            std::cout << "Invalid move: Unknown piece type\n";
             return false;
     }
+
+    if (!moveValid) {
+        return false;
+    }
+
+    // Backup the original state of the board
+    Vector2 originalPiecePosition = piece.position;
+    Piece* targetPiece = nullptr;
+    Vector2 originalTargetPosition = { -1, -1 }; // Initialize with a dummy value
+
+    // Find and temporarily remove the piece at the new position (if any)
+    for (auto& otherPiece : pieces) {
+        if (Vector2Equals(otherPiece.position, newPosition)) {
+            targetPiece = &otherPiece;
+            originalTargetPosition = otherPiece.position;
+            otherPiece.position = { -1, -1 }; // Temporarily remove the piece
+            break;
+        }
+    }
+
+    // Move the piece to the new position
+    piece.position = newPosition;
+
+    // Check if the move leaves the king in check
+    bool validMove = !IsInCheck(piece.color, pieces);
+
+    // Undo the move
+    piece.position = originalPiecePosition;
+    if (targetPiece != nullptr) {
+        targetPiece->position = originalTargetPosition; // Restore the captured piece's position
+    }
+
+    if (!validMove) {
+        std::cout << "Move is invalid because it leaves the king in check.\n";
+        return false;
+    }
+
+    std::cout << "Move is valid.\n";
+    return true;
 }
