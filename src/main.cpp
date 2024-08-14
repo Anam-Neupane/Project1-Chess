@@ -147,8 +147,9 @@ int main()
             DrawRectangle(1100,55,700,455,DARKBROWN);
             DrawRectangle(1100,510,700,455,BEIGE);
             B1.UpdateDragging();
-            B1.DrawPieces();
             B1.DrawPlayer(); 
+            B1.DrawPieces();
+
             }
         }
 
