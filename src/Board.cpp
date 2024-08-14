@@ -110,9 +110,8 @@ void Board::DrawPieces() {
     DrawScores();
     for (const auto& piece : pieces) {
         DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
-    }
-
 }
+
 void Board::UnloadPieces(){
     for (auto& piece : pieces) {
         UnloadTexture(piece.texture);
@@ -194,7 +193,6 @@ void Board::UpdateDragging() {
                             break;
                         }
                     }
-
                     pieces[draggedPieceIndex].position = newPosition;
                     CurrentPlayer = (CurrentPlayer +1) % 2;
 
@@ -210,10 +208,15 @@ void Board::UpdateDragging() {
             else{ 
                 pieces[draggedPieceIndex].position = originalPosition;
             } 
+
+        } else {
+            pieces[draggedPieceIndex].position = originalPosition;//Not the player turn // Snaps back to place.
+        } 
       }
     }
   }
 }
+
 void Board::CapturePiece(int capturedPieceIndex)
 {
     float offset = 92.0; // Space between pieces in the captured section
@@ -242,9 +245,4 @@ void Board::CapturePiece(int capturedPieceIndex)
     }
     pieces[capturedPieceIndex].captured = true;
 }
-
-
-
-
-
             

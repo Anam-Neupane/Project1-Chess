@@ -149,7 +149,6 @@ int main()
             B1.UpdateDragging();
             B1.DrawPlayer(); 
             B1.DrawPieces();
-
             }
         }
 

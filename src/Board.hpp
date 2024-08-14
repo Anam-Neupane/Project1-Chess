@@ -54,7 +54,7 @@ class Board{
         void DrawPieces();
         void UnloadPieces();
         void UpdateDragging();
-        void CapturePiece(int capturedPieceIndex);
+        void CapturePiece(int);
         void DrawScores();
         void DrawPlayer();
 };
