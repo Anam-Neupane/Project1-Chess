@@ -110,7 +110,6 @@ void Board::DrawPieces() {
     DrawScores();
     for (const auto& piece : pieces) {
         DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
-    } 
 }
 
 void Board::UnloadPieces(){
@@ -196,13 +195,18 @@ void Board::UpdateDragging() {
                     }
                     pieces[draggedPieceIndex].position = newPosition;
                     CurrentPlayer = (CurrentPlayer +1) % 2;
-                  }
+
+                   } 
+                   else{
+                         pieces[draggedPieceIndex].position = originalPosition;
+                    }
+                }
                else{ 
                     pieces[draggedPieceIndex].position = originalPosition;
                 }
-          } 
+            } 
             else{ 
-            pieces[draggedPieceIndex].position = originalPosition;
+                pieces[draggedPieceIndex].position = originalPosition;
             } 
 
         } else {
