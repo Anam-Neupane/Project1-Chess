@@ -107,11 +107,11 @@ void Board::LoadPieces() {
 }
 
 void Board::DrawPieces() {
-    DrawScores();
     for (const auto& piece : pieces) {
         DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
+    }
+    DrawScores();
 }
-
 void Board::UnloadPieces(){
     for (auto& piece : pieces) {
         UnloadTexture(piece.texture);
@@ -185,7 +185,8 @@ void Board::UpdateDragging() {
                 if(originalPosition.x != newPosition.x || originalPosition.y != newPosition.y){
                     //Checking if move is valid.
                     if(MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)){
-                    
+                        bool kingside = newPosition.x > originalPosition.x;
+                        ExecuteCastling(pieces[draggedPieceIndex], kingside,pieces);
                         //For capturing 
                         for (std::size_t i = 0; i < pieces.size(); ++i) {
                         if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
@@ -193,6 +194,7 @@ void Board::UpdateDragging() {
                             break;
                         }
                     }
+
                     pieces[draggedPieceIndex].position = newPosition;
                     CurrentPlayer = (CurrentPlayer +1) % 2;
 
@@ -208,15 +210,11 @@ void Board::UpdateDragging() {
             else{ 
                 pieces[draggedPieceIndex].position = originalPosition;
             } 
-
-        } else {
-            pieces[draggedPieceIndex].position = originalPosition;//Not the player turn // Snaps back to place.
-        } 
       }
     }
   }
 }
-
+  
 void Board::CapturePiece(int capturedPieceIndex)
 {
     float offset = 92.0; // Space between pieces in the captured section
@@ -245,4 +243,34 @@ void Board::CapturePiece(int capturedPieceIndex)
     }
     pieces[capturedPieceIndex].captured = true;
 }
-            
+void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &pieces) {
+    int kingY = static_cast<int>((king.position.y - boardPosition.y) / squareSize);
+    int rookX = kingside ? 7 : 0; // Kingside or Queenside rook
+    int rookY = kingY;
+
+    // Find the rook
+    Piece* rook = nullptr;
+    for (auto& piece : pieces) {
+        if (piece.type == ROOK && piece.color == king.color &&
+            static_cast<int>((piece.position.x - boardPosition.x) / squareSize) == rookX &&
+            static_cast<int>((piece.position.y - boardPosition.y) / squareSize) == rookY) {
+            rook = &piece;
+            break;
+        }
+    }
+
+    if (!rook) return; // Rook not found
+
+    // Move the king
+    Vector2 newKingPos = { boardPosition.x + (kingside ? 6 : 2) * squareSize, king.position.y };
+    king.position.x = newKingPos.x;
+    king.position.y = newKingPos.y;
+
+    // Move the rook
+    Vector2 newRookPos = { boardPosition.x + (kingside ? 5 : 3) * squareSize, rook->position.y };
+    rook->position = newRookPos;
+    
+    // Mark king and rook as moved
+    king.hasMoved = true;
+    rook->hasMoved = true;
+}

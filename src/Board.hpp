@@ -54,9 +54,10 @@ class Board{
         void DrawPieces();
         void UnloadPieces();
         void UpdateDragging();
-        void CapturePiece(int);
+        void CapturePiece(int capturedPieceIndex);
         void DrawScores();
         void DrawPlayer();
+        void ExecuteCastling(Piece &king,bool kingside,std::vector<Piece> &pieces);
 };
 
 #endif // BOARD_H
