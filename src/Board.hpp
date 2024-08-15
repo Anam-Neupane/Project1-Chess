@@ -57,7 +57,7 @@ class Board{
         void CapturePiece(int capturedPieceIndex);
         void DrawScores();
         void DrawPlayer();
-        void ExecuteCastling(Piece &king,bool kingside,std::vector<Piece> &pieces);
+        static void ExecuteCastling(Piece &king,bool kingside,std::vector<Piece> &pieces,const Vector2 originalPosition);
 };
 
 #endif // BOARD_H

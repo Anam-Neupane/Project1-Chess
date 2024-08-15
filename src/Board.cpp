@@ -170,23 +170,23 @@ void Board::UpdateDragging() {
                 // if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
                 //This is shorter form 
                 snappedX = std::max(boardPosition.x, std::min(snappedX, boardPosition.x + 7 * squareSize));
-
-                // Constrain snappedY to the board boundaries  
-                // if (snappedY < boardPosition.y) snappedY = boardPosition.y;
-                // if (snappedY >= boardPosition.y + 8 * squareSize) snappedY = boardPosition.y + (8 - 1) * squareSize;
-                //This is shorter form 
                 snappedY = std::max(boardPosition.y, std::min(snappedY, boardPosition.y + 7 * squareSize));
 
                 Vector2 newPosition = Vector2 {snappedX,snappedY};
 
                 //Checking the turn of the player(UI improvement)
-                if(pieces[draggedPieceIndex].color == CurrentPlayer){
+                    if (pieces[draggedPieceIndex].color == CurrentPlayer) {
+                    if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
+                        
+                        if(pieces[draggedPieceIndex].type==ROOK)
+                        {
+                            pieces[draggedPieceIndex].hasMoved = true;
+                        }
 
-                if(originalPosition.x != newPosition.x || originalPosition.y != newPosition.y){
-                    //Checking if move is valid.
-                    if(MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)){
-                        bool kingside = newPosition.x > originalPosition.x;
-                        ExecuteCastling(pieces[draggedPieceIndex], kingside,pieces);
+                        // Check if the move is valid
+                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)) {
+                            pieces[draggedPieceIndex].position = newPosition;
+
                         //For capturing 
                         for (std::size_t i = 0; i < pieces.size(); ++i) {
                         if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
@@ -243,8 +243,10 @@ void Board::CapturePiece(int capturedPieceIndex)
     }
     pieces[capturedPieceIndex].captured = true;
 }
-void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &pieces) {
-    int kingY = static_cast<int>((king.position.y - boardPosition.y) / squareSize);
+
+void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &pieces,const Vector2 originalPosition) {
+    
+    int kingY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
     int rookX = kingside ? 7 : 0; // Kingside or Queenside rook
     int rookY = kingY;
 
@@ -258,19 +260,35 @@ void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &piec
             break;
         }
     }
+    std::cout<<"King position = "<<king.position.y<<std::endl;
 
-    if (!rook) return; // Rook not found
+    // Debugging log to track the state of the king and rook
+    if (!rook) {
+        std::cout << "Rook not found for castling! RookX: " << rookX << ", RookY: " << rookY << std::endl;
+        return; // Rook not found
+    }
+     std::cout << "Rook found at (" << rook->position.x << ", " << rook->position.y << ")" << std::endl;
+
+         // Check if the king or rook has moved
+    if (king.hasMoved || rook->hasMoved) {
+        std::cout << "Castling not allowed, king or rook has moved." << std::endl;
+        return; // Either the king or rook has moved
+    }
 
     // Move the king
-    Vector2 newKingPos = { boardPosition.x + (kingside ? 6 : 2) * squareSize, king.position.y };
+    Vector2 newKingPos = { boardPosition.x + (kingside ? 6 : 2) * squareSize, king.position.y + boardPosition.y};
     king.position.x = newKingPos.x;
     king.position.y = newKingPos.y;
 
     // Move the rook
-    Vector2 newRookPos = { boardPosition.x + (kingside ? 5 : 3) * squareSize, rook->position.y };
-    rook->position = newRookPos;
+    Vector2 newRookPos = { boardPosition.x + (kingside ? 5 : 3) * squareSize, rook->position.y};
+    rook->position.x = newRookPos.x;
+    rook->position.y = newRookPos.y;
     
     // Mark king and rook as moved
     king.hasMoved = true;
     rook->hasMoved = true;
+    // Log the positions for debugging
+    std::cout << "Castling performed: King moved to (" << newKingPos.x << ", " << newKingPos.y << "), Rook moved to ("
+    << newRookPos.x << ", " << newRookPos.y << ")\n";
 }

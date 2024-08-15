@@ -3,6 +3,7 @@
 
 #include "Piece.hpp"
 #include <vector>
+#include "Board.hpp"
 
 class MoveValidator {
 private:
