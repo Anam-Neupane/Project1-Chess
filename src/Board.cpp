@@ -206,11 +206,13 @@ void Board::UpdateDragging() {
             else{ 
             pieces[draggedPieceIndex].position = originalPosition;
             } 
+      }else{
+        pieces[draggedPieceIndex].position = originalPosition;
       }
     }
   }
 }
-  
+}  
 void Board::CapturePiece(int capturedPieceIndex)
 {
     float offset = 92.0; // Space between pieces in the captured section
