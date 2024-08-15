@@ -23,6 +23,7 @@ class Piece {
         Vector2 position;
         Texture2D texture;
         bool captured;
+        bool hasMoved = false;
     
         Piece(int t,int c, Vector2 pos ,Texture2D tex):type(t),color(c),position(pos),texture(tex),captured(false)
         {}
