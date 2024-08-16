@@ -35,6 +35,7 @@ void Board::DrawScores() {//Drawing scores
     DrawText(whiteScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
     DrawText(blackScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
 }
+
 void Board::DrawPlayer(){
     if(CurrentPlayer)
     {
@@ -185,7 +186,7 @@ void Board::UpdateDragging() {
                         }
 
                         // Check if the move is valid
-                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition)) {
+                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
                             pieces[draggedPieceIndex].position = newPosition;
 
                         //For capturing 
@@ -213,8 +214,9 @@ void Board::UpdateDragging() {
   }
 }
 }  
+
 void Board::CapturePiece(int capturedPieceIndex)
-{
+{std::cout << "Captured piece index: " << capturedPieceIndex << std::endl;
     float offset = 92.0; // Space between pieces in the captured section
     int piecesPerRow = 7; // Number of pieces per row in the captured section
     
@@ -289,4 +291,28 @@ void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &piec
     // Log the positions for debugging
     std::cout << "Castling performed: King moved to (" << newKingPos.x << ", " << newKingPos.y << "), Rook moved to ("
     << newRookPos.x << ", " << newRookPos.y << ")\n";
+}
+
+void Board::ExecuteEnPassant(Piece& capturingPawn, std::vector<Piece>& pieces, const Vector2& originalPosition, const Vector2& newPosition) {
+
+    float capturedPawnX = newPosition.x;
+    float capturedPawnY = originalPosition.y; // The captured pawn is directly behind the capturing pawn
+
+    std::cout << "Attempting to capture pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
+
+    for (const auto &piece : pieces) {
+            std::cout << "Piece Type: " << piece.type << ", Position: (" << piece.position.x << ", " << piece.position.y << ")" << std::endl;
+        }
+    for (std::size_t i = 0; i < pieces.size(); ++i) {
+        
+        std::cout << "Checking piece at index " << i << " with position (" << pieces[i].position.x << ", " << pieces[i].position.y << ")" << std::endl;
+
+        if (pieces[i].position.x == capturedPawnX && pieces[i].position.y == capturedPawnY && pieces[i].type == PAWN && pieces[i].color != capturingPawn.color) {
+            std::cout << "Capturing Pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
+            this->CapturePiece(i);
+            break;
+        }
+    }
+
+    capturingPawn.position = newPosition; // Move the capturing pawn to the new position
 }

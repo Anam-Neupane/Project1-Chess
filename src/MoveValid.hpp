@@ -4,6 +4,7 @@
 #include "Piece.hpp"
 #include <vector>
 #include "Board.hpp"
+#include <tuple>
 
 class MoveValidator {
 private:
@@ -14,10 +15,13 @@ private:
     static bool IsQueenMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
     static bool IsKnightMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
     static bool IsKingMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
-       
-public:
-    static bool IsMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition); 
     static bool IsCastlingValid(const Piece &king, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
+    static bool IsEnPassantValid(const Piece &piece,const Vector2 &newPosition,const std::vector<Piece> &pieces, const Vector2 &originalPostion); 
+    static std::tuple<Piece, Vector2, Vector2> lastMove; //Tuple to store the last move (piece, original position, new position)
+
+public:
+    static bool IsMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board); 
+   
 };
 
 #endif // MOVEVALID_HPP

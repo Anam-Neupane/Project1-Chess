@@ -55,6 +55,7 @@ class Board{
         void UnloadPieces();
         void UpdateDragging();
         void CapturePiece(int capturedPieceIndex);
+        void ExecuteEnPassant(Piece& capturingPawn, std::vector<Piece>& pieces, const Vector2& originalPosition, const Vector2& newPosition);
         void DrawScores();
         void DrawPlayer();
         static void ExecuteCastling(Piece &king,bool kingside,std::vector<Piece> &pieces,const Vector2 originalPosition);

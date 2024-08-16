@@ -17,7 +17,7 @@ enum PieceType {
 class Piece {
 
     public:
-
+        Piece(){}
         int type;  // 1 to 6 for rook, knight, bishop, queen, king, pawn
         int color; // 0 for black, 1 for white
         Vector2 position;
