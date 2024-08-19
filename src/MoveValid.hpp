@@ -5,6 +5,7 @@
 #include <vector>
 #include "Board.hpp"
 #include <tuple>
+#include "button.hpp"
 
 class MoveValidator {
 private:

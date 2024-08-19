@@ -1,9 +1,9 @@
-
 #include <iostream>
 #include "Board.hpp"
 #include <raymath.h>
 #include <algorithm>
 #include "MoveValid.hpp"
+
 //For Global variable
 float squareSize = 112.6;
 Vector2 boardPosition = {0, 55};
@@ -107,6 +107,42 @@ void Board::LoadPieces() {
     }
 }
 
+void Board::LoadPromotionTexture()
+{
+    Image piecesImage = LoadImage("resource/figure1.png");
+
+    if (piecesImage.data == nullptr) {//for checking if the file is loaded correctly.
+    std::cout << "Failed to load image: resource/figure1.png" << std::endl;
+    return;
+}
+
+
+    // In figure1.png contains two rows of pieces: one for black and one for white
+     pieceWidth = piecesImage.width / pieceTypes;
+     pieceHeight = piecesImage.height / pieceColors;
+
+    for (int y = 0; y < pieceColors; y++) {
+        for (int x = 0; x < pieceTypes; x++) {
+
+            Image pieceImage = ImageFromImage(piecesImage, Rectangle{static_cast<float>(x*pieceWidth),
+             static_cast<float>(y*pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
+
+
+            //for resizing the pieces cuz it's too biggggg....
+                int newWidth = static_cast<int>(pieceWidth * 0.38);
+                int newHeight = static_cast<int>(pieceHeight* 0.38);
+                ImageResize(&pieceImage, newWidth, newHeight);
+
+
+            promotionTexture[y * pieceTypes + x] = LoadTextureFromImage(pieceImage);
+            
+            UnloadImage(pieceImage);
+        }
+    }
+    UnloadImage(piecesImage);
+
+}
+
 void Board::DrawPieces() {
     DrawScores();
     for (const auto& piece : pieces) {
@@ -114,106 +150,62 @@ void Board::DrawPieces() {
     }
 }
 
-void Board::UnloadPieces(){
-    for (auto& piece : pieces) {
-        UnloadTexture(piece.texture);
-    }
-}
-//For Drag and Drop (Basically moving)
-void Board::UpdateDragging() {
-    mousePos = GetMousePosition();
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        for (std::size_t i = 0; i < pieces.size(); i++) {
-
-            // For Skiping Captured Pieces 
-            if(pieces[i].captured)
-            {
-                continue;
+void Board::DrawPromotionMenu(Vector2 position, int color)
+{
+    // Draw the promotion menu background and border
+    
+    DrawRectangle(position.x, position.y, 4 * squareSize, squareSize, WHITE);
+    if(color == 1)DrawRectangle(position.x, position.y, 4 * squareSize, squareSize, {0, 0, 0, 200});
+    DrawRectangleLines(position.x, position.y, 4 * squareSize, squareSize, WHITE);
+    
+    
+        // Draw the black promotion pieces
+        for (int i = 0; i < 4; i++) {
+            Vector2 piecePosition = {position.x + i * squareSize, position.y};
+            if(color == 0)
+            {  
+                DrawTexture(promotionTexture[i], piecePosition.x, piecePosition.y, WHITE);
             }
-            /*---------------------------------------------*/
+            else
+            {
+                DrawTexture(promotionTexture[i+6], piecePosition.x, piecePosition.y, WHITE);
+            }
+        }
+        HandlePawnPromotion(color, position);
+}
 
-            Rectangle pieceRect = {pieces[i].position.x,
-                 pieces[i].position.y , squareSize, squareSize}; 
+void Board::HandlePawnPromotion(int color, Vector2 position) {
+    int windowWidth = GetScreenWidth();  // Get the current window width
+    int windowHeight = GetScreenHeight();  // Get the current window height
 
-            if (CheckCollisionPointRec(mousePos,pieceRect)){
-                dragging = true;
-                draggedPieceIndex = i;
-                offset = Vector2Subtract(mousePos, pieces[i].position);
-                originalPosition = pieces[i].position;
+    int PosX = ((windowWidth - 4 * squareSize) / 2);
+    int PosY = ((windowHeight - 40) / 2 - 30);
 
-                // Move the dragged piece to the back of the vector so it is drawn last
-                Piece draggedPiece = pieces[i];
-                pieces.erase(pieces.begin() + i);
-                pieces.push_back(draggedPiece);
-                draggedPieceIndex = pieces.size() - 1; // Update the index after moving the piece
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mousePos = GetMousePosition();
+
+        for (int i = 0; i < 4; i++) {
+            Rectangle pieceRect = {static_cast<float>(PosX) + i * squareSize, static_cast<float>(PosY), squareSize, squareSize};
+            if (CheckCollisionPointRec(mousePos, pieceRect)) {
+                std::cout << "Collision: " << i << std::endl;
+
+                // Find the pawn that is being promoted
+                for (auto& piece : pieces) {
+                    if (Vector2Equals(piece.position, promotionPosition) && piece.type == PAWN && piece.color == color) {
+                        std::cout<<"Pawn found"<<std::endl;
+                        // Replace the pawn with the selected piece
+                        piece.type = static_cast<PieceType>(i + 1); // i + 1 because 0: Rook, 1: Knight, 2: Bishop, 3: Queen
+                        piece.texture = promotionTexture[(color == 0 ? i : i + 6)];
+                        break;
+                    }
+                }
+
+                PawnPromo = false;  // Close the promotion menu
                 break;
             }
         }
     }
-
-    if (dragging) {
-        pieces[draggedPieceIndex].position = Vector2Subtract(mousePos, offset);
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            dragging = false;
-            
-            float snappedX = roundf((pieces[draggedPieceIndex].position.x - boardPosition.x) / squareSize) * squareSize + boardPosition.x;
-            float snappedY = roundf((pieces[draggedPieceIndex].position.y - boardPosition.y) / squareSize) * squareSize + boardPosition.y;
-
-
-            bool outOfBounds = (snappedX < boardPosition.x || snappedX >= (boardPosition.x + 8* squareSize) ||
-                                 snappedY < boardPosition.y || snappedY >= (boardPosition.y + 8 * squareSize));
-
-            if(outOfBounds){
-                pieces[draggedPieceIndex].position = originalPosition;
-            }                     
-            else{
-                // Constrain snappedX to the board boundaries(This also works)
-                // if (snappedX < boardPosition.x) snappedX = boardPosition.x;
-                // if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
-                //This is shorter form 
-                snappedX = std::max(boardPosition.x, std::min(snappedX, boardPosition.x + 7 * squareSize));
-                snappedY = std::max(boardPosition.y, std::min(snappedY, boardPosition.y + 7 * squareSize));
-
-                Vector2 newPosition = Vector2 {snappedX,snappedY};
-
-                //Checking the turn of the player(UI improvement)
-                    if (pieces[draggedPieceIndex].color == CurrentPlayer) {
-                    if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
-                        
-                        if(pieces[draggedPieceIndex].type==ROOK)
-                        {
-                            pieces[draggedPieceIndex].hasMoved = true;
-                        }
-
-                        // Check if the move is valid
-                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
-                            pieces[draggedPieceIndex].position = newPosition;
-
-                        //For capturing 
-                        for (std::size_t i = 0; i < pieces.size(); ++i) {
-                        if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
-                            CapturePiece(i);  // Capture the piece
-                            break;
-                        }
-                    }
-
-                    pieces[draggedPieceIndex].position = newPosition;
-                    CurrentPlayer = (CurrentPlayer +1) % 2;
-                  }
-               else{ 
-                    pieces[draggedPieceIndex].position = originalPosition;
-                }
-          } 
-            else{ 
-            pieces[draggedPieceIndex].position = originalPosition;
-            } 
-      }else{
-        pieces[draggedPieceIndex].position = originalPosition;
-      }
-    }
-  }
 }
-}  
 
 void Board::CapturePiece(int capturedPieceIndex)
 {std::cout << "Captured piece index: " << capturedPieceIndex << std::endl;
@@ -316,3 +308,116 @@ void Board::ExecuteEnPassant(Piece& capturingPawn, std::vector<Piece>& pieces, c
 
     capturingPawn.position = newPosition; // Move the capturing pawn to the new position
 }
+
+void Board::UnloadPieces(){
+    for (auto& piece : pieces) {
+        UnloadTexture(piece.texture);
+    }
+}
+
+//For Drag and Drop (Basically moving)
+void Board::UpdateDragging() {
+    mousePos = GetMousePosition();
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        for (std::size_t i = 0; i < pieces.size(); i++) {
+
+            // For Skiping Captured Pieces 
+            if(pieces[i].captured)
+            {
+                continue;
+            }
+            /*---------------------------------------------*/
+
+            Rectangle pieceRect = {pieces[i].position.x,
+                 pieces[i].position.y , squareSize, squareSize}; 
+
+            if (CheckCollisionPointRec(mousePos,pieceRect)){
+                dragging = true;
+                draggedPieceIndex = i;
+                offset = Vector2Subtract(mousePos, pieces[i].position);
+                originalPosition = pieces[i].position;
+
+                // Move the dragged piece to the back of the vector so it is drawn last
+                Piece draggedPiece = pieces[i];
+                pieces.erase(pieces.begin() + i);
+                pieces.push_back(draggedPiece);
+                draggedPieceIndex = pieces.size() - 1; // Update the index after moving the piece
+                break;
+            }
+        }
+    }
+
+    if (dragging) {
+        pieces[draggedPieceIndex].position = Vector2Subtract(mousePos, offset);
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            dragging = false;
+            
+            float snappedX = roundf((pieces[draggedPieceIndex].position.x - boardPosition.x) / squareSize) * squareSize + boardPosition.x;
+            float snappedY = roundf((pieces[draggedPieceIndex].position.y - boardPosition.y) / squareSize) * squareSize + boardPosition.y;
+
+
+            bool outOfBounds = (snappedX < boardPosition.x || snappedX >= (boardPosition.x + 8* squareSize) ||
+                                 snappedY < boardPosition.y || snappedY >= (boardPosition.y + 8 * squareSize));
+
+            if(outOfBounds){
+                pieces[draggedPieceIndex].position = originalPosition;
+            }                     
+            else{
+                // Constrain snappedX to the board boundaries(This also works)
+                // if (snappedX < boardPosition.x) snappedX = boardPosition.x;
+                // if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
+                //This is shorter form 
+                snappedX = std::max(boardPosition.x, std::min(snappedX, boardPosition.x + 7 * squareSize));
+                snappedY = std::max(boardPosition.y, std::min(snappedY, boardPosition.y + 7 * squareSize));
+
+                Vector2 newPosition = Vector2 {snappedX,snappedY};
+
+                //Checking the turn of the player(UI improvement)
+                    if (pieces[draggedPieceIndex].color == CurrentPlayer) {
+                    if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
+                        
+                        if(pieces[draggedPieceIndex].type==ROOK)
+                        {
+                            pieces[draggedPieceIndex].hasMoved = true;
+                        }
+
+
+                        // Check if the move is valid
+                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
+                            pieces[draggedPieceIndex].position = newPosition;
+
+                        
+
+                        //For capturing 
+                        for (std::size_t i = 0; i < pieces.size(); ++i) {
+                        if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
+                            CapturePiece(i);  // Capture the piece
+                            break;
+                        }
+                    }
+
+                    pieces[draggedPieceIndex].position = newPosition;
+                    if(PawnPromo == true)
+                    {
+                        CurrentPlayer = CurrentPlayer;
+                    }
+                    else{
+                    CurrentPlayer = (CurrentPlayer +1) % 2;
+                    }
+
+                  }
+               else{ 
+                    pieces[draggedPieceIndex].position = originalPosition;
+                }
+          } 
+            else{ 
+            pieces[draggedPieceIndex].position = originalPosition;
+            } 
+      }else{
+        pieces[draggedPieceIndex].position = originalPosition;
+     
+    }
+}}
+}                    
+}  
+

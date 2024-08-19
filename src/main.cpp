@@ -1,13 +1,15 @@
 #include <raylib.h>
 #include <cstddef>
 #include "button.hpp"
-#include <iostream>
 #include "Board.hpp"
+#include <iostream>
+
 enum GameState
 {
     MAIN_MENU,
     GAME
 };
+
 bool Paused = false;
 
 void ToggleFullScreenWindow(int WindowWidth,int Windowheight)
@@ -23,6 +25,7 @@ void ToggleFullScreenWindow(int WindowWidth,int Windowheight)
         SetWindowSize(WindowWidth,Windowheight);
     }
 }
+
 int main()
 {
     // Load the image for the main menu background
@@ -58,9 +61,9 @@ int main()
 
     // figure tpieces("resource\\figure1.png",0.4);
     Texture2D boardTexture = LoadTexture("resource/board0.png");
-    Board B1;
+    Board B1,B2;
     B1.LoadPieces();
-
+    B1.LoadPromotionTexture();
     // Current game state
     GameState gameState = MAIN_MENU;
 
@@ -142,14 +145,32 @@ int main()
             }
             // Draw the game screen
             if(!Paused){
-            DrawTexture(boardTexture, 0, 55, WHITE);
-            DrawRectangle(914,55,180,910,BROWN);
-            DrawRectangle(1100,55,700,455,DARKBROWN);
-            DrawRectangle(1100,510,700,455,BEIGE);
-            B1.UpdateDragging();
-            B1.DrawPlayer(); 
-            B1.DrawPieces();
+
+                if(B1.PawnPromo)
+                {
+                    int windowWidth = GetScreenWidth();  // Get the current window width
+                    int windowHeight = GetScreenHeight();  // Get the current window height
+
+                    int PosX = ((windowWidth - 4* squareSize) / 2);
+                    int PosY = ((windowHeight - 40) /2 -30);
+                    DrawTextPro(Font(),"Choose a Piece to Promote", {static_cast<float>(PosX),static_cast<float>(PosY-35)},{300,5},-45,60,5, WHITE);
+                   
+                    
+                    B1.DrawPromotionMenu({static_cast<float>(PosX),static_cast<float>(PosY)},B1.p1);
+
+                }
+                else{
+
+                     DrawTexture(boardTexture, 0, 55, WHITE);
+                     DrawRectangle(914,55,180,910,BROWN);
+                     DrawRectangle(1100,55,700,455,DARKBROWN);
+                     DrawRectangle(1100,510,700,455,BEIGE);
+                     B1.UpdateDragging();
+                     B1.DrawPlayer(); 
+                     B1.DrawPieces(); 
+                }
             }
+
         }
 
         // End drawing

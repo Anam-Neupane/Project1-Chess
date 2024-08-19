@@ -20,6 +20,7 @@ bool MoveValidator::IsPawnMoveValid(const Piece& piece, const Vector2& newPositi
 
     int dx = newX - currentX;
     int dy = newY - currentY;
+
     int startRow = (piece.color == 0) ? 1 : 6;   // Starting row for pawns
     int direction = (piece.color == 0) ? 1 : -1;
 
@@ -387,11 +388,23 @@ bool MoveValidator::IsMoveValid(const Piece& piece, const Vector2& newPosition, 
             isValid = false;
             break;
     }
+        if (isValid && piece.type == PAWN) {
+
+        int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
+        int promotionRank = (piece.color == 0) ? 7 : 0;
+        
+        if (newY == promotionRank) {
+
+            board.PawnPromo = true;
+            board.promotionPosition = newPosition;
+            board.p1 = (piece.color == 0) ? 0 : 1;
+            std::cout << "Promoting pawn" << std::endl;
+            
+        }
+    }
         if(isValid){
             lastMove = std::make_tuple(piece, originalPosition, newPosition);// Storing the move 
         }
 
         return isValid;
-
 }
-
