@@ -19,9 +19,12 @@ private:
     static bool IsCastlingValid(const Piece &king, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition);
     static bool IsEnPassantValid(const Piece &piece,const Vector2 &newPosition,const std::vector<Piece> &pieces, const Vector2 &originalPostion); 
     static std::tuple<Piece, Vector2, Vector2> lastMove; //Tuple to store the last move (piece, original position, new position)
-
+    static bool IsKingInCheck(const std::vector<Piece>& pieces, const Vector2& kingPosition, int kingColor, const Board& board);
+    static bool CanPieceAttack(const Piece& piece, const Vector2& targetPosition, const std::vector<Piece>& pieces);
+    static bool SimulateMove(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board);
+    static bool CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces, Board &board); 
 public:
-    static bool IsMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board); 
+    static bool IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board); 
    
 };
 

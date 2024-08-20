@@ -25,7 +25,9 @@ Board::Board() : dragging(false), draggedPieceIndex(-1), CurrentPlayer(1),
     whiteScorePosition({boardPosition.x+5 , boardPosition.y + squareSize * 8 + 10}),//Initialization of the Score Position
     blackScorePosition({boardPosition.x+5 , boardPosition.y - 25}), 
     //Initialization of Player's Turn Position
-    playerturnPosition({boardPosition.x + squareSize * 8 + 19, boardPosition.y + squareSize * 4 - 29})
+    playerturnPosition({boardPosition.x + squareSize * 8 + 19, boardPosition.y + squareSize * 4 - 29}),
+    blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
+    whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
     {}
 
 void Board::DrawScores() {//Drawing scores
@@ -376,6 +378,12 @@ void Board::UpdateDragging() {
                     if (pieces[draggedPieceIndex].color == CurrentPlayer) {
                     if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
                         
+                         // Store original king position
+                        Vector2 tempKingPosition;
+                        if (pieces[draggedPieceIndex].type == KING) {
+                            tempKingPosition = (pieces[draggedPieceIndex].color == 0) ? blackKingPosition : whiteKingPosition;
+                        }
+
                         if(pieces[draggedPieceIndex].type==ROOK)
                         {
                             pieces[draggedPieceIndex].hasMoved = true;
@@ -386,7 +394,13 @@ void Board::UpdateDragging() {
                         if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
                             pieces[draggedPieceIndex].position = newPosition;
 
-                        
+                                if (pieces[draggedPieceIndex].type == KING) {
+                                if (pieces[draggedPieceIndex].color == 0) { // Black King
+                                    blackKingPosition = newPosition;
+                                } else if (pieces[draggedPieceIndex].color == 1) { // White King
+                                    whiteKingPosition = newPosition;
+                                }
+                            }
 
                         //For capturing 
                         for (std::size_t i = 0; i < pieces.size(); ++i) {
@@ -397,27 +411,27 @@ void Board::UpdateDragging() {
                     }
 
                     pieces[draggedPieceIndex].position = newPosition;
-                    if(PawnPromo == true)
-                    {
-                        CurrentPlayer = CurrentPlayer;
-                    }
-                    else{
-                    CurrentPlayer = (CurrentPlayer +1) % 2;
-                    }
+                    CurrentPlayer = (CurrentPlayer +1)%2;
+                  
+                     }else {
+                            pieces[draggedPieceIndex].position = originalPosition;
 
-                  }
-               else{ 
+                            // Revert king's position if the move was invalid
+                            if (pieces[draggedPieceIndex].type == KING) {
+                                if (pieces[draggedPieceIndex].color == 0) {
+                                    blackKingPosition = tempKingPosition;
+                                } else if (pieces[draggedPieceIndex].color == 1) {
+                                    whiteKingPosition = tempKingPosition;
+                                }
+                            }
+                        }
+                    } else {
+                        pieces[draggedPieceIndex].position = originalPosition;
+                    }
+                } else {
                     pieces[draggedPieceIndex].position = originalPosition;
                 }
-          } 
-            else{ 
-            pieces[draggedPieceIndex].position = originalPosition;
-            } 
-      }else{
-        pieces[draggedPieceIndex].position = originalPosition;
-     
+            }
+        }
     }
-}}
-}                    
-}  
-
+}

@@ -56,6 +56,8 @@ class Board{
         ~Board();
 
         Vector2 promotionPosition;  // Store the pawn's position for promotion
+        Vector2 blackKingPosition;
+        Vector2 whiteKingPosition;
 
         void LoadPieces();
         void LoadPromotionTexture();
