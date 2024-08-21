@@ -7,17 +7,18 @@ extern float squareSize;
 extern Vector2 boardPosition;
 
 enum PieceType {
+    NONE = 0,
     ROOK = 1,
     KNIGHT,
     BISHOP,
     QUEEN,
     KING,
-    PAWN
+    PAWN,
 };
 class Piece {
 
     public:
-
+        Piece(){}
         int type;  // 1 to 6 for rook, knight, bishop, queen, king, pawn
         int color; // 0 for black, 1 for white
         Vector2 position;

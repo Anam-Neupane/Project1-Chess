@@ -15,6 +15,7 @@ Button::Button(const char *imagePath, Vector2 imagePosition , float scale)
     UnloadImage(image);
     position = imagePosition;
 }
+
 Button::~Button()
 {
     UnloadTexture(texture);
@@ -24,6 +25,7 @@ void Button::Draw()
 {
     DrawTextureV(texture,position,WHITE);
 }
+
 bool Button::isPressed(Vector2 mousePos , bool mousePressed)
 {
     Rectangle rect = {position.x,position.y,static_cast<float>(texture.width),static_cast<float>(texture.height)};
