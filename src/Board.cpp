@@ -407,11 +407,17 @@ void Board::UpdateDragging() {
                         if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
                             CapturePiece(i);  // Capture the piece
                             break;
+                            }
                         }
-                    }
+                            // Checkmate detection after a valid move
+                            if (MoveValidator::IsCheckmate(pieces, CurrentPlayer == 0 ? 1 : 0,*this)) {
+                                std::cout << "Checkmate detected!" << std::endl;
+                                // Handle game over logic (e.g., display message, stop further moves)
+                            }
 
-                    pieces[draggedPieceIndex].position = newPosition;
-                    CurrentPlayer = (CurrentPlayer +1)%2;
+                        pieces[draggedPieceIndex].position = newPosition;
+                        CurrentPlayer = (CurrentPlayer +1)%2;
+
                   
                      }else {
                             pieces[draggedPieceIndex].position = originalPosition;
