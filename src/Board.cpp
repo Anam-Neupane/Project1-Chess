@@ -56,7 +56,24 @@ Board::~Board(){
     UnloadPieces();
 }
 
-void Board::LoadPieces() {
+void Board::Reset()
+{
+    pieces.clear();
+    whiteCapturedCount = 0;
+    blackCapturedCount = 0;
+    whiteScore = 0;
+    blackScore = 0;
+    CurrentPlayer = 1;
+    PawnPromo = false;
+    Checkmate = false;
+    Cwhite = false;
+    LoadPieces();
+    blackKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y};
+    whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};
+}
+
+void Board::LoadPieces()
+{
 
     Image piecesImage = LoadImage("resource/figure1.png");
 
@@ -155,9 +172,6 @@ void Board::DrawPieces() {
 void Board::DrawPromotionMenu(Vector2 position, int color)
 {
     // Draw the promotion menu background and border
-    
-    DrawRectangle(position.x, position.y, 4 * squareSize, squareSize, WHITE);
-    if(color == 1)DrawRectangle(position.x, position.y, 4 * squareSize, squareSize, {0, 0, 0, 200});
     DrawRectangleLines(position.x, position.y, 4 * squareSize, squareSize, WHITE);
     
     
@@ -412,6 +426,12 @@ void Board::UpdateDragging() {
                             // Checkmate detection after a valid move
                             if (MoveValidator::IsCheckmate(pieces, CurrentPlayer == 0 ? 1 : 0,*this)) {
                                 std::cout << "Checkmate detected!" << std::endl;
+                                std::cout<<(CurrentPlayer == 1 ? "White Wins" : "Black Wins")<<std::endl;
+                                if(CurrentPlayer == 1)
+                                {
+                                    Cwhite = true;
+                                }
+                                // Checkmate = true;
                                 // Handle game over logic (e.g., display message, stop further moves)
                             }
 

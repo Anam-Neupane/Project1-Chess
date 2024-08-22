@@ -111,6 +111,7 @@ int main()
         BeginDrawing();
         ClearBackground(BLACK);
 
+        mainmenu:
         if (gameState == MAIN_MENU)
         {
             // Draw the main menu background and buttons
@@ -153,12 +154,36 @@ int main()
 
                     int PosX = ((windowWidth - 4* squareSize) / 2);
                     int PosY = ((windowHeight - 40) /2 -30);
-                    DrawTextPro(Font(),"Choose a Piece to Promote", {static_cast<float>(PosX),static_cast<float>(PosY-35)},{300,5},-45,60,5, WHITE);
+
+                    DrawRectangle(0, 0, windowWidth, windowHeight, Fade(BEIGE, 0.8f));
+
+                    const char* Promotiontxt = "Choose a Piece for Promotion";
+                    int PromotiontxtWidth = MeasureText(Promotiontxt, 40);
+                    int PromotiontxtX = (windowWidth - PromotiontxtWidth) / 2;
+                    int PromotiontxtY = (windowHeight - 40) / 2 - 80;
+                    DrawText(Promotiontxt, PromotiontxtX, PromotiontxtY, 40, WHITE);
                    
-                    
                     B1.DrawPromotionMenu({static_cast<float>(PosX),static_cast<float>(PosY)},B1.p1);
 
                 }
+
+                else if (B1.Checkmate) {
+                    int windowWidth = GetScreenWidth();
+                    int windowHeight = GetScreenHeight();
+
+                    int PosX = ((windowWidth - 4 * squareSize) / 2);
+                    int PosY = ((windowHeight - 40) / 2 - 30);
+                    DrawTextPro(Font(), "Checkmate", {static_cast<float>(PosX-55), static_cast<float>(PosY - 35)}, {200, 5}, -45, 70, 5, WHITE);
+                    B1.Cwhite ? DrawText("White Wins", PosX, PosY, 40, WHITE) : DrawText("Black Wins", PosX, PosY, 40, WHITE);
+                    DrawText("Press R to Restart", PosX, PosY + 50, 40, WHITE);
+
+                    if (IsKeyPressed(KEY_R)) {
+                        B1.Reset();  // Reset the game state
+                        gameState = MAIN_MENU;  // Return to the main menu
+                        goto mainmenu;
+                    }
+                }
+
                 else{
 
                      DrawTexture(boardTexture, 0, 55, WHITE);

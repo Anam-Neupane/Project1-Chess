@@ -34,6 +34,7 @@ class MoveValidator {
         static std::vector<Vector2> GetQueenMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board);
         static std::vector<Vector2> GetKnightMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board);
         static std::vector<Vector2> GetKingMoves(Piece& piece, const std::vector<Piece>& pieces, const Board& board);
+        static bool SimulateMoveAndCheck(std::vector<Piece>& pieces, Piece& piece, Vector2 newPosition, int kingColor, Board& board);
 
         
     public:

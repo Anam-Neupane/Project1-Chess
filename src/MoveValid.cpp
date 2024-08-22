@@ -660,15 +660,19 @@ bool MoveValidator::IsCheckmate(std::vector<Piece>& pieces, int kingColor, Board
 
                 // Log simulation
                 std::cout << "Simulating move..." << std::endl;
-                if (IsMoveValid(tempPiece, move, pieces, originalPosition , board)) {
+                if(IsMoveValid(tempPiece, move, pieces, piece.position ,board)){
                     std::cout << "Move simulated. Checking if king is in check..." << std::endl;
                     if (!IsKingInCheck(pieces , move , kingColor, board)) {
-                        std::cout << "Found a valid move that gets the king out of check" << std::endl;
+                        std::cout << "Found a valid move that gets the king out of check 1" << std::endl;
                         return false; // Found a valid move that gets the king out of check, so it's not checkmate
                     }
                 }
                 // Restore the original position
                 tempPiece.position = originalPosition;
+                if(!SimulateMoveAndCheck(pieces, piece, move, kingColor, board)){
+                    std::cout << "Found a valid move that gets the king out of check 2" << std::endl;
+                    return false;
+                }
             }
         }
     }
@@ -734,7 +738,7 @@ std::vector<Vector2> MoveValidator::GetPawnMoves(const Piece& piece, const std::
         {piece.position.x, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)},
         {piece.position.x, piece.position.y + 2 * squareSize * ((piece.color == 0) ? 1 : -1)},
         {piece.position.x + squareSize, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)},
-        {piece.position.x - squareSize, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)}
+        {piece.position.x - squareSize, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)},
     };
 
     for (const auto& newPosition : potentialMoves) {
@@ -864,4 +868,33 @@ std::vector<Vector2> MoveValidator::GetKingMoves(Piece& piece, const std::vector
         }
     }
     return moves;
+}
+bool MoveValidator::SimulateMoveAndCheck(std::vector<Piece>& pieces, Piece& piece, Vector2 newPosition, int kingColor, Board& board) {
+    // Store original position
+    Vector2 originalPosition = piece.position;
+
+    // Simulate the move
+    piece.position = newPosition;
+
+    // Temporarily remove any captured piece at the new position
+    Piece* capturedPiece = nullptr;
+    for (auto& p : pieces) {
+        if (p.position.x == newPosition.x && p.position.y == newPosition.y && !p.captured) {
+            capturedPiece = &p;
+            capturedPiece->captured = true;
+            break;
+        }
+    }
+
+    // Check if the king is still in check after this move
+    bool kingInCheck = IsKingInCheck(pieces, (kingColor == 1) ? board.whiteKingPosition : board.blackKingPosition, kingColor, board);
+
+    // Revert the move
+    piece.position = originalPosition;
+    if (capturedPiece) {
+        capturedPiece->captured = false;
+    }
+
+    // Return whether the king is still in check
+    return kingInCheck;
 }

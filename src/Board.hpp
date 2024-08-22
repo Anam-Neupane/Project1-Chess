@@ -49,6 +49,9 @@ class Board{
     public:
 
         bool PawnPromo = false;
+        bool Checkmate = false;
+        bool Cwhite = false;
+
 
         bool p1;
 
@@ -59,6 +62,7 @@ class Board{
         Vector2 blackKingPosition;
         Vector2 whiteKingPosition;
 
+        void Reset();
         void LoadPieces();
         void LoadPromotionTexture();
         void DrawPieces();
