@@ -50,6 +50,7 @@ class Board{
 
         bool PawnPromo = false;
         bool Checkmate = false;
+
         bool Cwhite = false;
 
 

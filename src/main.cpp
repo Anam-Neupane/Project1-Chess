@@ -173,9 +173,10 @@ int main()
 
                     int PosX = ((windowWidth - 4 * squareSize) / 2);
                     int PosY = ((windowHeight - 40) / 2 - 30);
-                    DrawTextPro(Font(), "Checkmate", {static_cast<float>(PosX-55), static_cast<float>(PosY - 35)}, {200, 5}, -45, 70, 5, WHITE);
-                    B1.Cwhite ? DrawText("White Wins", PosX, PosY, 40, WHITE) : DrawText("Black Wins", PosX, PosY, 40, WHITE);
-                    DrawText("Press R to Restart", PosX, PosY + 50, 40, WHITE);
+                    DrawRectangle(0, 0, windowWidth, windowHeight, Fade(MAROON, 0.6f));
+                    DrawText("Checkmate ¬_¬ ", PosX - 80, PosY - 130, 90, WHITE);
+                    B1.Cwhite ? DrawText("White Wins", PosX + 35, PosY, 60, BEIGE) : DrawText("Black Wins", PosX, PosY, 60, BEIGE);
+                    DrawText("Press R to Restart", PosX + 10, PosY + 70, 40, SKYBLUE);
 
                     if (IsKeyPressed(KEY_R)) {
                         B1.Reset();  // Reset the game state

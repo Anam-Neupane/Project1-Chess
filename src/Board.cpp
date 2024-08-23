@@ -402,8 +402,9 @@ void Board::UpdateDragging() {
                         {
                             pieces[draggedPieceIndex].hasMoved = true;
                         }
+                             
 
-
+                     
                         // Check if the move is valid
                         if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
                             pieces[draggedPieceIndex].position = newPosition;
@@ -417,27 +418,55 @@ void Board::UpdateDragging() {
                             }
 
                         //For capturing 
-                        for (std::size_t i = 0; i < pieces.size(); ++i) {
-                        if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
-                            CapturePiece(i);  // Capture the piece
-                            break;
-                            }
-                        }
-                            // Checkmate detection after a valid move
-                            if (MoveValidator::IsCheckmate(pieces, CurrentPlayer == 0 ? 1 : 0,*this)) {
-                                std::cout << "Checkmate detected!" << std::endl;
-                                std::cout<<(CurrentPlayer == 1 ? "White Wins" : "Black Wins")<<std::endl;
-                                if(CurrentPlayer == 1)
-                                {
-                                    Cwhite = true;
+                        // for (std::size_t i = 0; i < pieces.size(); ++i) {
+                        // if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
+                        //         CapturePiece(i);  // Capture the piece
+                        //         break;
+                        //     }
+                        // }
+                        
+                            // For capturing 
+                             bool validCapture = true;
+                            for (std::size_t i = 0; i < pieces.size(); ++i) {
+                                if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
+                                    Vector2 tempPosition = pieces[draggedPieceIndex].position;
+                                    Piece capturedPiece = pieces[i];
+                                    pieces.erase(pieces.begin() + i);
+                                    pieces[draggedPieceIndex].position = newPosition;
+
+                                    bool isKingSafe = !MoveValidator::IsKingInCheck(pieces, pieces[draggedPieceIndex].color == 0 ? blackKingPosition : whiteKingPosition, pieces[draggedPieceIndex].color, *this);
+
+                                    pieces[draggedPieceIndex].position = tempPosition;
+                                    pieces.insert(pieces.begin() + i, capturedPiece);
+
+                                    if (isKingSafe) {
+                                        this->CapturePiece(i);
+                                    } else {
+                                        pieces[draggedPieceIndex].position = originalPosition;
+                                        validCapture = false;
+                                    }
+                                    break;
                                 }
-                                // Checkmate = true;
-                                // Handle game over logic (e.g., display message, stop further moves)
                             }
+                                // Checkmate detection after a valid move
+                            if(validCapture){
+                            
+                            pieces[draggedPieceIndex].position = newPosition;
+  
+                                if (MoveValidator::IsCheckmate(pieces, CurrentPlayer == 0 ? 1 : 0,*this)) {
+                                    std::cout << "Checkmate detected!" << std::endl;
+                                    std::cout<<(CurrentPlayer == 1 ? "White Wins" : "Black Wins")<<std::endl; 
+                                        if(CurrentPlayer == 1)
+                                        {
+                                            Cwhite = true;
+                                        }
+                                    Checkmate = true;
+                                        // Handle game over logic (e.g., display message, stop further moves)
+                                        return;
+                                }
 
-                        pieces[draggedPieceIndex].position = newPosition;
-                        CurrentPlayer = (CurrentPlayer +1)%2;
-
+                            CurrentPlayer = (CurrentPlayer +1)%2;
+                        }
                   
                      }else {
                             pieces[draggedPieceIndex].position = originalPosition;

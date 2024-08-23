@@ -21,11 +21,11 @@ class MoveValidator {
         static bool IsCastlingValid(Piece &king, const Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board);
         static bool IsEnPassantValid(const Piece &piece,const Vector2 &newPosition,const std::vector<Piece> &pieces, const Vector2 &originalPostion); 
 
-        static bool IsKingInCheck(const std::vector<Piece>& pieces, const Vector2& kingPosition, int kingColor, const Board& board);
+        
         static bool CanPieceAttack(const Piece& piece, const Vector2& targetPosition, const std::vector<Piece>& pieces);
         static bool SimulateMove(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board);
         static bool SimulateMoveForOur(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board);
-        static bool CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces, Board &board); 
+        static bool CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces,const Vector2 &originalPosition , Board &board); 
 
         static std::vector<Vector2> GetAllPossibleMoves( Piece& piece, std::vector<Piece>& pieces, Board& board);
         static std::vector<Vector2> GetPawnMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board);
@@ -40,6 +40,7 @@ class MoveValidator {
     public:
         static bool IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board); 
         static bool IsCheckmate(std::vector<Piece>& pieces, int kingColor, Board& board);
+        static bool IsKingInCheck(const std::vector<Piece>& pieces, const Vector2& kingPosition, int kingColor, const Board& board);
 };
 
 #endif // MOVEVALID_HPP
