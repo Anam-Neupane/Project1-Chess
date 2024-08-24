@@ -11,9 +11,8 @@ bool MoveValidator::Vector2Equals(const Vector2& a, const Vector2& b, float tole
 }
 
 bool MoveValidator::IsPawnMoveValid(const Piece& piece, const Vector2& newPosition, const std::vector<Piece>& pieces, const Vector2& originalPosition) {
+    
     // Converting pixel positions to board coordinates
-
-   
     int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
     int currentY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
@@ -25,7 +24,7 @@ bool MoveValidator::IsPawnMoveValid(const Piece& piece, const Vector2& newPositi
     int startRow = (piece.color == 0) ? 1 : 6;   // Starting row for pawns
     int direction = (piece.color == 0) ? 1 : -1;
 
-        // Check if the new position is within board bounds
+    // Checking if new position is within board bounds
     if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
         return false; // Out of bounds
     }
@@ -42,7 +41,8 @@ bool MoveValidator::IsPawnMoveValid(const Piece& piece, const Vector2& newPositi
 
     // Initial double move
     if (newX == currentX && newY == currentY + 2 * direction && currentY == startRow) {
-        // Check that both the square directly in front and two squares in front are clear
+
+        // Checking that both square directly in front and two squares in front are clear
         Vector2 intermediatePosition = {originalPosition.x, originalPosition.y + direction * squareSize};
         for (const auto &otherPiece : pieces) {
             if (Vector2Equals(otherPiece.position, intermediatePosition) || Vector2Equals(otherPiece.position, newPosition)) {
@@ -74,7 +74,7 @@ bool MoveValidator::IsRookMoveValid(const Piece &piece, const Vector2 &newPositi
     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
     int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
 
-        // Check if the new position is within board bounds
+    // Checking if new position is within board bounds
     if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
         return false; // Out of bounds
     }
@@ -83,7 +83,8 @@ bool MoveValidator::IsRookMoveValid(const Piece &piece, const Vector2 &newPositi
     {
         return false;
     }
-    // To determine the direction and check each square in the path
+
+    // To determine direction and to check each square in the path
     int xDirection = (newX - currentX) != 0 ? ((newX - currentX) > 0 ? 1 : -1) : 0;
     int yDirection = (newY - currentY) != 0 ? ((newY - currentY) > 0 ? 1 : -1) : 0;
 
@@ -101,7 +102,7 @@ bool MoveValidator::IsRookMoveValid(const Piece &piece, const Vector2 &newPositi
         y += yDirection;
     }
 
-    // To Check the destination square(For Capture)
+    // To Check destination square(For Capture)
     for (const auto &otherPiece : pieces) {
         if (Vector2Equals(otherPiece.position, newPosition)) {
             if (otherPiece.color == piece.color) {
@@ -115,68 +116,18 @@ bool MoveValidator::IsRookMoveValid(const Piece &piece, const Vector2 &newPositi
     return true; // Valid move, no piece blocking the path
 }
 
-// bool MoveValidator::IsBishopMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition) {
-//     int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
-//     int currentY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
-//     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
-//     int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
-
-//     std::cout << "Original Pos: (" << currentX << ", " << currentY << "), New Pos: (" << newX << ", " << newY << ")" << std::endl;
-
-//     int dx = newX - currentX;
-//     int dy = newY - currentY;
-
-//     if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
-//         return false; // Out of bounds
-//     }
-
-//     if (std::abs(dx) != std::abs(dy)) {
-//         return false; // Not a diagonal move
-//     }
-
-//     int xDirection = (dx > 0) ? 1 : -1;
-//     int yDirection = (dy > 0) ? 1 : -1;
-
-//     int x = currentX + xDirection;
-//     int y = currentY + yDirection;
-
-//     while (x != newX && y != newY) {
-//         Vector2 intermediatePosition = {boardPosition.x + x * squareSize, boardPosition.y + y * squareSize};
-//         std::cout << "Intermediate Pos: (" << x << ", " << y << ")" << std::endl;
-//         for (const auto &otherPiece : pieces) {
-//             if (Vector2Equals(otherPiece.position, intermediatePosition)) {
-//                 return false; // Path is blocked
-//             }
-//         }
-//         x += xDirection;
-//         y += yDirection;
-//     }
-
-//     for (const auto &otherPiece : pieces) {
-//         if (Vector2Equals(otherPiece.position, newPosition)) {
-//             if (otherPiece.color == piece.color) {
-//                 return false; // Can't capture its own piece
-//             } else {
-//                 return true; // Valid capture move
-//             }
-//         }
-//     }
-
-//     return true; // Valid move, no piece blocking the path
-// }
-
 bool MoveValidator::IsBishopMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition) {
+   
     int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
     int currentY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
     int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
 
-    std::cout << "Original Pos: (" << currentX << ", " << currentY << "), New Pos: (" << newX << ", " << newY << ")" << std::endl;
+    // std::cout << "Original Pos: (" << currentX << ", " << currentY << "), New Pos: (" << newX << ", " << newY << ")" << std::endl;
 
     int dx = newX - currentX;
     int dy = newY - currentY;
 
-        // Check if the new position is within board bounds
     if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
         return false; // Out of bounds
     }
@@ -196,11 +147,11 @@ bool MoveValidator::IsBishopMoveValid(const Piece &piece, const Vector2 &newPosi
 
     while (x != newX || y != newY) {
         if (x < 0 || x > 7 || y < 0 || y > 7) {
-        std::cout << "Intermediate Pos Out of Bounds: (" << x << ", " << y << ")" << std::endl;
+        // std::cout << "Intermediate Pos Out of Bounds: (" << x << ", " << y << ")" << std::endl;
         return false; // Position out of bounds, break out early
     }
         Vector2 intermediatePosition = {boardPosition.x + x * squareSize, boardPosition.y + y * squareSize};
-        std::cout << "Intermediate Pos: (" << x << ", " << y << ")" << std::endl;
+        // std::cout << "Intermediate Pos: (" << x << ", " << y << ")" << std::endl;
         for (const auto &otherPiece : pieces) {
             if (Vector2Equals(otherPiece.position, intermediatePosition)) {
                 return false; // Path is blocked
@@ -224,7 +175,6 @@ bool MoveValidator::IsBishopMoveValid(const Piece &piece, const Vector2 &newPosi
     return true; // Valid move, no piece blocking the path
 }
 
-
 bool MoveValidator::IsQueenMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition)
 {
     // Converting pixel positions to board coordinates
@@ -236,12 +186,10 @@ bool MoveValidator::IsQueenMoveValid(const Piece &piece, const Vector2 &newPosit
     int dx = newX - currentX;
     int dy = newY - currentY;
 
-    // All Oueen moves are Rook moves but not all Rook moves are Queen's move.😶‍🌫️ 
     if (currentX == newX || currentY == newY) {
         return IsRookMoveValid(piece, newPosition, pieces, originalPosition);
     }
 
-    // All queen moves are Bishop move but not all Bishop moves are Queen's move.😂
     if (std::abs(dx) == std::abs(dy)) {
         return IsBishopMoveValid(piece, newPosition, pieces, originalPosition);
     }
@@ -260,9 +208,8 @@ bool MoveValidator::IsKnightMoveValid(const Piece &piece, const Vector2 &newPosi
     int dx = std::abs(newX - currentX);
     int dy = std::abs(newY - currentY);
 
-        // Check if the new position is within board bounds
     if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
-        return false; // Out of bounds
+        return false;
     }
 
     // Checking if the move is in an "L" shape
@@ -286,15 +233,14 @@ bool MoveValidator::IsKnightMoveValid(const Piece &piece, const Vector2 &newPosi
 
 bool MoveValidator::IsKingMoveValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition)
 {
-        // Convert pixel positions to board coordinates
+
     int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
     int currentY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
     int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
 
-        // Check if the new position is within board bounds
     if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
-        return false; // Out of bounds
+        return false;
     }
 
     int dx = std::abs(newX - currentX);
@@ -313,12 +259,13 @@ bool MoveValidator::IsKingMoveValid(const Piece &piece, const Vector2 &newPositi
                 }
             }
         }
-        return true; // Valid move, no piece blocking the path
+        return true; // Valid move, no piece blocking path
     }
     return false;// Invalid move for King(only one square.)
 }
 
 bool MoveValidator::IsEnPassantValid(const Piece& piece, const Vector2& newPosition, const std::vector<Piece>& pieces, const Vector2& originalPosition) {
+   
     int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
     int currentY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
@@ -334,15 +281,17 @@ bool MoveValidator::IsEnPassantValid(const Piece& piece, const Vector2& newPosit
         const Vector2& lastOriginalPosition = std::get<1>(lastMove);
         const Vector2& lastNewPosition = std::get<2>(lastMove);
 
-        // Checking if the last move was a double pawn move by the opponent
+        // Checking if last move was a double pawn move by the opponent
         if (lastMovePiece.type == PAWN && lastMovePiece.color != piece.color) {
+            
             // std::cout<<"I am Inside En Passant"<<std::endl;
             int lastMoveStartY = static_cast<int>((lastOriginalPosition.y - boardPosition.y) / squareSize);
             int lastMoveEndY = static_cast<int>((lastNewPosition.y - boardPosition.y) / squareSize);
 
             if (std::abs(lastMoveEndY - lastMoveStartY) == 2) {
+                
                 // std::cout<<"Last Move was a double pawn move"<<std::endl;
-                // Checking if the pawn moved beside the current pawn
+                // Checking if pawn moved beside the current pawn
                 int enPassantX = static_cast<int>((lastNewPosition.x - boardPosition.x) / squareSize);
                 int enPassantY = lastMoveStartY - direction; // Where the opponent's pawn landed
                 // std::cout << "enPassantX: " << enPassantX << " enPassantY: " << enPassantY << std::endl;
@@ -363,20 +312,19 @@ bool MoveValidator::IsCastlingValid(Piece &king, const Vector2 &newPosition, std
         return false;
     }
 
-        // Convert pixel positions to board coordinates
     int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
     int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
 
     int dx = (newX - currentX);
     if (std::abs(dx) != 2) {
-        return false; // Castling must move exactly 2 squares horizontally
+        return false; // For Castling must move exactly 2 squares horizontally
     }
 
     bool kingside = dx > 0;
     int rookX = kingside ? 7 : 0; 
     int rookY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
 
-    // Find the rook
+    // Finding rook
     Piece* rook = nullptr;
     for (auto &piece : pieces) {
         if (piece.type == ROOK && piece.color == king.color 
@@ -394,11 +342,11 @@ bool MoveValidator::IsCastlingValid(Piece &king, const Vector2 &newPosition, std
     for (int x = currentX + step; x != rookX; x += step) {
         Vector2 intermediatePosition = {boardPosition.x + x * squareSize, boardPosition.y + rookY * squareSize};
 
-        // Temporarily move the king to this intermediate position
+        // Temporarily moving king to this intermediate position
         Vector2 tempKingPosition = king.position;
         king.position = intermediatePosition;
 
-        // Check if the king would be in check at this position
+        // Checking if the king would be in check at this position
         if (IsKingInCheck(pieces, intermediatePosition, king.color, board)) {
             king.position = tempKingPosition; // Restore original position
             std::cout<<"Checking for King in Check:: False"<<std::endl;
@@ -420,7 +368,8 @@ bool MoveValidator::IsCastlingValid(Piece &king, const Vector2 &newPosition, std
         std::cout<<"King is in check(No Castle.)"<<std::endl;
         return false;//Can't castle while in check.
     }
-    // Final check: Ensure the king isn't moving into check at the castling destination
+
+    // Final check: Ensuring that king isn't moving into check at the castling destination
     Vector2 finalKingPosition = newPosition;
     if (IsKingInCheck(pieces, finalKingPosition, king.color, board)) {
         std::cout<<"Destination check:"<<std::endl;
@@ -431,11 +380,12 @@ bool MoveValidator::IsCastlingValid(Piece &king, const Vector2 &newPosition, std
 }
 
 bool MoveValidator::ForPawnCaptureValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition) {
-    int direction = (piece.color == 0) ? 1 : -1; // Assuming 0 is white and 1 is black
+    
+    int direction = (piece.color == 0) ? 1 : -1; // Here 0 is white and 1 is black
     Vector2 attackLeft = { originalPosition.x - squareSize, originalPosition.y + (squareSize * direction) };
     Vector2 attackRight = { originalPosition.x + squareSize, originalPosition.y + (squareSize * direction) };
 
-    // Check if the new position matches one of the attack positions
+    // Checking if the new position matches one of the attack positions
     if (Vector2Equals(newPosition, attackLeft) || Vector2Equals(newPosition, attackRight)) {
         return true;
     }
@@ -447,7 +397,7 @@ bool MoveValidator::ForPawnCaptureValid(const Piece &piece, const Vector2 &newPo
 bool MoveValidator::IsKingInCheck(const std::vector<Piece>& pieces, const Vector2& kingPosition, int kingColor, const Board& board) {
   
     for (const auto& piece : pieces) {
-        if (!piece.captured && piece.color != kingColor) { // Check only opponent's pieces
+        if (!piece.captured && piece.color != kingColor) { // Checking only opponent's pieces
             if (CanPieceAttack(piece, kingPosition, pieces)) {
                 std::cout << "King is in check by piece of type " << piece.type << " at position (" << piece.position.x << "," << piece.position.y << ")" << std::endl;
                 return true; // King is in check
@@ -458,6 +408,7 @@ bool MoveValidator::IsKingInCheck(const std::vector<Piece>& pieces, const Vector
 }
 
 bool MoveValidator::CanPieceAttack(const Piece& piece, const Vector2& targetPosition, const std::vector<Piece>& pieces) {
+    
     //  std::cout << "Checking if piece of type(canpieceAttack) " << piece.type << " at position (" << piece.position.x << ", " << piece.position.y << ") can attack target position (" << targetPosition.x << ", " << targetPosition.y << ")." << std::endl;
     switch (piece.type) {
         case PAWN:
@@ -478,10 +429,11 @@ bool MoveValidator::CanPieceAttack(const Piece& piece, const Vector2& targetPosi
 }
 
 bool MoveValidator::SimulateMoveForOur(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board) {
+    
     Vector2 tempPosition = piece.position;
     Piece* capturedPiece = nullptr;
 
-    // Check if the move would capture a piece
+    // Checking if the move would capture a piece
     for (Piece& otherPiece : pieces) {
         if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color) {
             capturedPiece = &otherPiece;
@@ -490,13 +442,13 @@ bool MoveValidator::SimulateMoveForOur(Piece& piece, const Vector2& newPosition,
         }
     }
 
-    // Temporarily move the piece
+    // Temporarily moving the piece
     piece.position = newPosition;
     if (capturedPiece) {
         capturedPiece->captured = true;
     }
 
-    // Determine the king's position after the move
+    // King's position after the move
     Vector2 kingPosition = (piece.color == 0) ? board.blackKingPosition : board.whiteKingPosition;
     bool isInCheck = IsKingInCheck(pieces, kingPosition, piece.color, board);
 
@@ -511,10 +463,10 @@ bool MoveValidator::SimulateMoveForOur(Piece& piece, const Vector2& newPosition,
 }
 
 bool MoveValidator::SimulateMove(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board) {
+    
     Vector2 tempPosition = piece.position;
     Piece* capturedPiece = nullptr;
 
-    // Check if the move would capture a piece
     for (Piece& otherPiece : pieces) {
         if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color) {
             capturedPiece = &otherPiece;
@@ -523,17 +475,14 @@ bool MoveValidator::SimulateMove(Piece& piece, const Vector2& newPosition, std::
         }
     }
 
-    // Temporarily move the piece
     piece.position = newPosition;
     if (capturedPiece) {
         capturedPiece->captured = true;
     }
 
-    // Determine the opponent king's position after the move
     Vector2 opponentKingPosition = (piece.color == 0) ? board.whiteKingPosition : board.blackKingPosition;
     bool isInCheck = IsKingInCheck(pieces, opponentKingPosition, 1 - piece.color, board);
 
-    // Revert the move
     piece.position = tempPosition;
     if (capturedPiece) {
         capturedPiece->captured = false;
@@ -544,9 +493,10 @@ bool MoveValidator::SimulateMove(Piece& piece, const Vector2& newPosition, std::
 }
 
 bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition,std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board) {
+    
     bool isValid = false;
 
-    // Validate the move based on piece type
+    // Validating move based on piece type
     switch (piece.type) {
         case PAWN:
             if (IsEnPassantValid(piece, newPosition, pieces, originalPosition)) {
@@ -587,7 +537,7 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition,std::vector<P
             break;
     }
 
-    // After validating the move, check if it leaves the king in check
+    // After validating the move, checking if it leaves king in check
     if (isValid && piece.type != KING) {
         if (!SimulateMoveForOur(const_cast<Piece&>(piece), newPosition, const_cast<std::vector<Piece>&>(pieces), board)) {
             std::cout << "Move would leave the king in check!" << std::endl;
@@ -595,7 +545,7 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition,std::vector<P
         }
     }
 
-    // Check if opponent's king is in check after the move
+    // Checking if opponent's king is in check after move
     if (!SimulateMove(const_cast<Piece&>(piece), newPosition, const_cast<std::vector<Piece>&>(pieces), board)&&isValid) {
         std::cout << "Opponent's king Checking done." << std::endl;
     }
@@ -622,85 +572,12 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition,std::vector<P
     return isValid;
 }
 
-// bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces,const Vector2 &originalPosition, Board &board) {
-//     // Temporarily store the current position of the king and a reference to the captured piece
-//     Vector2 tempKingPosition = king.position;
-//     Piece capturedPiece;
-//     bool pieceCaptured = false;
-//     size_t capturedPieceIndex = 0;
-
-//     // Find the piece at the new position (if any)
-//     auto it = std::find_if(pieces.begin(), pieces.end(), [&newPosition](const Piece &p) {
-//         return Vector2Equals(p.position, newPosition);
-//     });
-
-//     if (it != pieces.end()) {
-//         capturedPiece = *it;
-//         capturedPieceIndex = std::distance(pieces.begin(), it);
-//         pieces.erase(it); // Temporarily remove the captured piece
-//         pieceCaptured = true;
-//     }
-
-//     // Move the king to the new position
-//     king.position = newPosition;
-
-//     // Update the board with the king's new position
-//     if (king.color == 0) {
-//         board.blackKingPosition = newPosition;
-//     } else {
-//         board.whiteKingPosition = newPosition;
-//     }
-
-//     // Check if the new position is protected by any opposing piece
-//     for (const auto& piece : pieces) {
-//         if (piece.color != king.color && !piece.captured) {
-//             if (CanPieceAttack(piece, newPosition, pieces)) {
-//                 std::cout<<"Trying to Capture the King"<<std::endl;
-//                 // Restore the king's original position
-//                 king.position = tempKingPosition;
-//                 // Restore the captured piece if it was temporarily removed
-//                 if (pieceCaptured) {
-//                     pieces.insert(pieces.begin() + capturedPieceIndex, capturedPiece);
-//                 }
-//                 // Restore the board state
-//                 if (king.color == 0) {
-//                     board.blackKingPosition = tempKingPosition;
-//                 } else {
-//                     board.whiteKingPosition = tempKingPosition;
-//                 }
-
-//                 return false; // Move is invalid because the square is protected
-//             }
-//         }
-//     }
-
-//     // Check if the king is in check after the move
-//     bool isInCheck = IsKingInCheck(pieces, newPosition, king.color, board);
-//     std::cout<<"IsKingInCheck after move(Checkingaftermove)"<<isInCheck<<std::endl;
-
-//     // Restore the king's original position
-//     king.position = tempKingPosition;
-
-//     // Restore the captured piece if it was temporarily removed
-//     if (pieceCaptured) {
-//         pieces.insert(pieces.begin() + capturedPieceIndex, capturedPiece);
-//     }
-
-//     // Restore the board state
-//     if (king.color == 0) {
-//         board.blackKingPosition = tempKingPosition;
-//     } else {
-//         board.whiteKingPosition = tempKingPosition;
-//     }
-
-//     return !isInCheck; // Return true if the king is not in check    
-//  }
-
 bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board) {
-    // Temporarily store the current position of the king
+    
+    // Temporarily storing current position of the king
     Vector2 tempKingPosition = king.position;
 
-    // Store references to the piece at the new position, if any
+    // Storing references to the piece at new position, if any
     Piece* capturedPiece = nullptr;
     bool isCaptured = false;
     
@@ -714,17 +591,17 @@ bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::v
         }
     }
 
-    // Move the king to the new position
+    // Moving the king to new position
     king.position = newPosition;
 
-    // Update the board with the king's new position
+    // Updating the board with the king's new position
     if (king.color == 0) {
         board.blackKingPosition = newPosition;
     } else {
         board.whiteKingPosition = newPosition;
     }
 
-    // Check if the king is still in check after moving
+    // Checking if the king is still in check after moving
     bool isInCheck = false;
     for (const auto& piece : pieces) {
         if (piece.color != king.color && !piece.captured) {
@@ -736,28 +613,28 @@ bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::v
         }
     }
 
-    // Restore the king's original position
+    // King's original position
     king.position = tempKingPosition;
 
-    // Restore the captured piece if it was temporarily marked
+    // Restoring the captured piece if it was temporarily marked
     if (isCaptured && capturedPiece) {
         capturedPiece->captured = false;
     }
 
-    // Restore the board state
+    // Restoring the board state
     if (king.color == 0) {
         board.blackKingPosition = tempKingPosition;
     } else {
         board.whiteKingPosition = tempKingPosition;
     }
 
-    // If the move puts the king in check, return false
+
     if (isInCheck) {
         std::cout << "Move is invalid: King is still in check after the move." << std::endl;
-        return false;
+        return false; //King is in check after the move
     }
 
-    // Perform a final check if the king is still in check after all moves
+    // Performing a final check if the king is still in check after all moves
     bool finalCheck = IsKingInCheck(pieces, newPosition, king.color, board);
 
     // Return false if the king is in check; otherwise, return true
@@ -765,18 +642,18 @@ bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::v
 }
 
 
-
 bool MoveValidator::IsCheckmate(std::vector<Piece>& pieces, int kingColor, Board& board) {
+    
     std::cout << "Checking for checkmate..." << std::endl;
     Vector2 kingPosition = (kingColor == 1) ? board.whiteKingPosition : board.blackKingPosition;
 
-    // First, check if the king is in check
+    // First, for checking if the king is in check
     if (!IsKingInCheck(pieces, kingPosition, kingColor, board)) {
         std::cout << "King is not in check" << std::endl;
         return false; // Not checkmate if the king is not in check
     }
 
-    // Simulate all possible moves for the opponent
+    // Simulating all possible moves for the opponent
     std::cout << "Pass" << std::endl;
     for (auto& piece : pieces) {
         if (piece.color == kingColor && !piece.captured) {
@@ -787,7 +664,7 @@ bool MoveValidator::IsCheckmate(std::vector<Piece>& pieces, int kingColor, Board
                           << " at position (" << piece.position.x << "," << piece.position.y 
                           << ") to position (" << move.x << "," << move.y << ")" << std::endl;
 
-                Piece tempPiece = piece; // Create a copy to simulate
+                Piece tempPiece = piece; // A copy to simulate
                 Vector2 originalPosition = tempPiece.position;
                 tempPiece.position = move;
 
@@ -800,8 +677,9 @@ bool MoveValidator::IsCheckmate(std::vector<Piece>& pieces, int kingColor, Board
                         return false; // Found a valid move that gets the king out of check, so it's not checkmate
                     }
                 }
-                // Restore the original position
+                // Restoring the original position
                 tempPiece.position = originalPosition;
+
                 //Checks for blocks and captures 
                 if(!SimulateMoveAndCheck(pieces, piece, move, kingColor, board)){
                     std::cout << "Found a valid move that gets the king out of check 2" << std::endl;
@@ -816,6 +694,7 @@ bool MoveValidator::IsCheckmate(std::vector<Piece>& pieces, int kingColor, Board
 }
 
 std::vector<Vector2> MoveValidator::GetAllPossibleMoves(Piece& piece, std::vector<Piece>& pieces, Board& board) {
+    
     std::vector<Vector2> moves;
     std::vector<Vector2> generatedMoves;
 
@@ -828,7 +707,7 @@ std::vector<Vector2> MoveValidator::GetAllPossibleMoves(Piece& piece, std::vecto
             generatedMoves = GetRookMoves(piece, pieces, board); 
             break;
         case BISHOP:
-            generatedMoves = GetBishopMoves(piece, pieces, board); 
+            generatedMoves = GetValidBishopMoves(piece, pieces, board); 
             break;
         case QUEEN:
             generatedMoves = GetQueenMoves(piece, pieces, board); 
@@ -844,14 +723,13 @@ std::vector<Vector2> MoveValidator::GetAllPossibleMoves(Piece& piece, std::vecto
             break;
     }
 
-    // Log the generated moves
     std::cout << "Generated moves for piece of type " << piece.type << " at position (" 
               << piece.position.x << "," << piece.position.y << "):" << std::endl;
     for (const Vector2& move : generatedMoves) {
         std::cout << "    Potential move to (" << move.x << "," << move.y << ")" << std::endl;
     }
 
-    // Validate each generated move
+    // Validating each generated move
     for (Vector2& potentialMove : generatedMoves) {
         if (IsMoveValid(piece, potentialMove, pieces, piece.position, board)) {
             std::cout << "    Valid move to (" << potentialMove.x << "," << potentialMove.y << ")" << std::endl;
@@ -867,7 +745,8 @@ std::vector<Vector2> MoveValidator::GetAllPossibleMoves(Piece& piece, std::vecto
 
 std::vector<Vector2> MoveValidator::GetPawnMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
     std::vector<Vector2> moves;
-    // Generate potential moves (one step forward, two steps forward, and captures)
+    
+    // Generating potential moves (one step forward, two steps forward, and captures)
     Vector2 potentialMoves[] = {
         {piece.position.x, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)},
         {piece.position.x, piece.position.y + 2 * squareSize * ((piece.color == 0) ? 1 : -1)},
@@ -887,7 +766,7 @@ std::vector<Vector2> MoveValidator::GetPawnMoves(const Piece& piece, const std::
 std::vector<Vector2> MoveValidator::GetRookMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
     std::vector<Vector2> moves;
 
-    // Generate potential horizontal and vertical moves
+    // Generating potential horizontal and vertical moves
     std::vector<Vector2> directions = {
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };
@@ -912,30 +791,49 @@ std::vector<Vector2> MoveValidator::GetRookMoves(const Piece& piece, const std::
     return moves;
 }
 
-std::vector<Vector2> MoveValidator::GetBishopMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
+std::vector<Vector2> MoveValidator::GetValidBishopMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
+    
     std::vector<Vector2> moves;
 
-    // Generate potential diagonal moves
     std::vector<Vector2> directions = {
         {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
     };
 
+    // Iterating through each diagonal direction
     for (const auto& direction : directions) {
         Vector2 newPosition = piece.position;
         while (true) {
+            
+            // Moving to the next diagonal position
             newPosition.x += direction.x * squareSize;
             newPosition.y += direction.y * squareSize;
-            if (IsBishopMoveValid(piece, newPosition, pieces, piece.position)) {
-                // Add the position only if it is valid
-                moves.push_back(newPosition);
-                // Stop if a piece is captured
-                if (std::any_of(pieces.begin(), pieces.end(), [&](const Piece& p) { return Vector2Equals(p.position, newPosition); })) {
-                    break;
-                }
-            } else {
-                break; // Invalid move, stop checking further in this direction
+
+            // Converting pixel position to board coordinates
+            int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
+            int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
+
+            if (newX < 0 || newX > 7 || newY < 0 || newY > 7) {
+                break;
             }
 
+            // Checking if there's any piece at the new position
+            auto it = std::find_if(pieces.begin(), pieces.end(), [&](const Piece& p) {
+                return Vector2Equals(p.position, newPosition);
+            });
+
+            // If a piece is found
+            if (it != pieces.end()) {
+                
+                // Checking if it's an enemy piece
+                if (it->color != piece.color) {
+                    moves.push_back(newPosition); // Valid capture
+                }
+                break; // Path is blocked, stoping further exploration
+
+            } else {
+                // No piece found, valid move
+                moves.push_back(newPosition);
+            }
         }
     }
 
@@ -943,11 +841,12 @@ std::vector<Vector2> MoveValidator::GetBishopMoves(const Piece& piece, const std
 }
 
 std::vector<Vector2> MoveValidator::GetQueenMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
+    
     std::vector<Vector2> moves;
 
     // Generate potential moves combining rook and bishop moves
     auto rookMoves = GetRookMoves(piece, pieces, board);
-    auto bishopMoves = GetBishopMoves(piece, pieces, board);
+    auto bishopMoves = GetValidBishopMoves(piece, pieces, board);
 
     // Combine both move sets
     moves.insert(moves.end(), rookMoves.begin(), rookMoves.end());
@@ -957,8 +856,9 @@ std::vector<Vector2> MoveValidator::GetQueenMoves(const Piece& piece, const std:
 }
 
 std::vector<Vector2> MoveValidator::GetKnightMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
+    
     std::vector<Vector2> moves;
-    // Generate all possible L-shaped moves
+    // Generating all possible L-shaped moves
     std::vector<Vector2> potentialMoves = {
         {piece.position.x + 2 * squareSize, piece.position.y + squareSize},
         {piece.position.x + 2 * squareSize, piece.position.y - squareSize},
@@ -978,10 +878,12 @@ std::vector<Vector2> MoveValidator::GetKnightMoves(const Piece& piece, const std
 
     return moves;
 }
+
 std::vector<Vector2> MoveValidator::GetKingMoves(Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
+    
     std::vector<Vector2> moves;
 
-    // Generate potential king moves (one square in any direction)
+    // Generating potential king moves (one square in any direction)
     Vector2 potentialMoves[] = {
         {piece.position.x + squareSize, piece.position.y},        // Right
         {piece.position.x - squareSize, piece.position.y},        // Left
@@ -1003,10 +905,11 @@ std::vector<Vector2> MoveValidator::GetKingMoves(Piece& piece, const std::vector
 }
 
 bool MoveValidator::SimulateMoveAndCheck(std::vector<Piece>& pieces, Piece& piece, Vector2 newPosition, int kingColor, Board& board) {
-    // Store original position
+    
+    // Storing original position
     Vector2 originalPosition = piece.position;
 
-    // Simulate the move
+    // Simulating the move
     piece.position = newPosition;
 
     // Temporarily remove any captured piece at the new position
@@ -1019,15 +922,15 @@ bool MoveValidator::SimulateMoveAndCheck(std::vector<Piece>& pieces, Piece& piec
         }
     }
 
-    // Check if the king is still in check after this move
+    // Checking if the king is still in check after this move
     bool kingInCheck = IsKingInCheck(pieces, (kingColor == 1) ? board.whiteKingPosition : board.blackKingPosition, kingColor, board);
 
-    // Revert the move
+    // Reverting the move
     piece.position = originalPosition;
     if (capturedPiece) {
         capturedPiece->captured = false;
     }
 
-    // Return whether the king is still in check
+    // Return's whether the king is still in check
     return kingInCheck;
 }

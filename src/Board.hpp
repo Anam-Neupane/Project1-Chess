@@ -39,11 +39,11 @@ class Board{
         int blackScore = 0;
         int GetPieceValue(int pieceType);
 
-        //For showing the points
+        //For showing points
         Vector2 whiteScorePosition;
         Vector2 blackScorePosition;
 
-        //For showing the Player
+        //For showing Player's Turn
         Vector2 playerturnPosition;
 
     public:
@@ -59,7 +59,7 @@ class Board{
         Board();
         ~Board();
 
-        Vector2 promotionPosition;  // Store the pawn's position for promotion
+        Vector2 promotionPosition;  // Storing pawn's position for promotion
         Vector2 blackKingPosition;
         Vector2 whiteKingPosition;
 

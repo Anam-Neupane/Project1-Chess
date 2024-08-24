@@ -28,42 +28,38 @@ void ToggleFullScreenWindow(int WindowWidth,int Windowheight)
 
 int main()
 {
-    // Load the image for the main menu background
+    
     Image look = LoadImage("resource/cut.png");
 
-    // Check if the image loaded successfully
+    // Checking if the image loaded successfully
     if (look.data == nullptr)
     {
-        // Image failed to load
         return -1;
     }
 
-    // Set screen dimensions based on the image size
+    // Screen width and height of the image used as window's dimensions
     int screenHeight = look.height;
     int screenWidth = look.width;
 
-    // Initialize the window with the image size
     InitWindow(screenWidth, screenHeight, "♟️ Chess");
 
-    // Set the target FPS
     SetTargetFPS(60);
 
-    // Load the texture from the image
+    // Loading the texture from the image
     Texture2D background = LoadTextureFromImage(look);
-    UnloadImage(look); // Unload the image from RAM as we have the texture in VRAM now
+
+    UnloadImage(look);
 
     Button startButton{"resource/Picture1.png", {300, 300}, 0.5};
     Button engineButton{"resource/Picture2.png", {300, 450}, 0.5};
     Button exitButton{"resource/Picture3.png", {300, 600}, 0.5};
     bool exit = false;
 
-    // Game textures
-
-    // figure tpieces("resource\\figure1.png",0.4);
     Texture2D boardTexture = LoadTexture("resource/board0.png");
-    Board B1,B2;
+    Board B1;
     B1.LoadPieces();
     B1.LoadPromotionTexture();
+
     // Current game state
     GameState gameState = MAIN_MENU;
 
@@ -80,7 +76,7 @@ int main()
             if (startButton.isPressed(mousePosition, mousePressed))
             {
                 std::cout << "Start Button Pressed" << std::endl;
-                gameState = GAME; // Switch to the game state
+                gameState = GAME; // Switching to the game state
             }
 
             if (engineButton.isPressed(mousePosition, mousePressed))
@@ -114,7 +110,7 @@ int main()
         mainmenu:
         if (gameState == MAIN_MENU)
         {
-            // Draw the main menu background and buttons
+            // Drawing main menu background and buttons
             DrawTexture(background, 0, 0, WHITE);
             startButton.Draw();
             engineButton.Draw();
@@ -125,8 +121,8 @@ int main()
 
             if(Paused)
             {
-                int windowWidth = GetScreenWidth();  // Get the current window width
-                int windowHeight = GetScreenHeight();  // Get the current window height
+                int windowWidth = GetScreenWidth();  // Current window width
+                int windowHeight = GetScreenHeight();  // Current window height
                 
                 const char* pausedText = "Paused";
                 const char* resumeText = "Press Space to Resume.......";
@@ -144,13 +140,13 @@ int main()
                 DrawText(resumeText, resumeTextX, resumeTextY, 40, GRAY);
 
             }
-            // Draw the game screen
+            // Drawing game screen
             if(!Paused){
 
                 if(B1.PawnPromo)
                 {
-                    int windowWidth = GetScreenWidth();  // Get the current window width
-                    int windowHeight = GetScreenHeight();  // Get the current window height
+                    int windowWidth = GetScreenWidth();  
+                    int windowHeight = GetScreenHeight();  
 
                     int PosX = ((windowWidth - 4* squareSize) / 2);
                     int PosY = ((windowHeight - 40) /2 -30);
@@ -179,8 +175,8 @@ int main()
                     DrawText("Press R to Restart", PosX + 10, PosY + 70, 40, SKYBLUE);
 
                     if (IsKeyPressed(KEY_R)) {
-                        B1.Reset();  // Reset the game state
-                        gameState = MAIN_MENU;  // Return to the main menu
+                        B1.Reset();  
+                        gameState = MAIN_MENU;  // Returning to main menu
                         goto mainmenu;
                     }
                 }
@@ -203,7 +199,7 @@ int main()
         EndDrawing();
     }
 
-    // Unload the textures and close the window
+    // Unloading textures and closing the window
     UnloadTexture(background);
     UnloadTexture(boardTexture);
     B1.UnloadPieces();

@@ -77,13 +77,13 @@ void Board::LoadPieces()
 
     Image piecesImage = LoadImage("resource/figure1.png");
 
-    if (piecesImage.data == nullptr) {//for checking if the file is loaded correctly.
+    if (piecesImage.data == nullptr) { //For checking if the file is loaded correctly.
     std::cout << "Failed to load image: resource/figure1.png" << std::endl;
     return;
 }
 
 
-    // In figure1.png contains two rows of pieces: one for black and one for white
+    // Figure1.png contains two rows of pieces: one for black and one for white
      pieceWidth = piecesImage.width / pieceTypes;
      pieceHeight = piecesImage.height / pieceColors;
     
@@ -96,7 +96,7 @@ void Board::LoadPieces()
              static_cast<float>(y*pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
 
 
-            //for resizing the pieces cuz it's too biggggg....
+            //For resizing the pieces cuz it's too biggggg....
                 int newWidth = static_cast<int>(pieceWidth * 0.38);
                 int newHeight = static_cast<int>(pieceHeight* 0.38);
                 ImageResize(&pieceImage, newWidth, newHeight);
@@ -110,7 +110,7 @@ void Board::LoadPieces()
 
     UnloadImage(piecesImage);
 
-    // Initialize pieces according to the initial board
+    // Initialization of pieces according to the board
     for (int y = 0; y < boardSize; y++) {
         for (int x = 0; x < boardSize; x++) {
             int pieceType = initialBoard[y][x];
@@ -130,13 +130,13 @@ void Board::LoadPromotionTexture()
 {
     Image piecesImage = LoadImage("resource/figure1.png");
 
-    if (piecesImage.data == nullptr) {//for checking if the file is loaded correctly.
+    if (piecesImage.data == nullptr) {//For checking if the file is loaded correctly.
     std::cout << "Failed to load image: resource/figure1.png" << std::endl;
     return;
 }
 
 
-    // In figure1.png contains two rows of pieces: one for black and one for white
+    // Figure1.png contains two rows of pieces: one for black and one for white
      pieceWidth = piecesImage.width / pieceTypes;
      pieceHeight = piecesImage.height / pieceColors;
 
@@ -147,7 +147,7 @@ void Board::LoadPromotionTexture()
              static_cast<float>(y*pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
 
 
-            //for resizing the pieces cuz it's too biggggg....
+            //For resizing the pieces cuz it's too biggggg....
                 int newWidth = static_cast<int>(pieceWidth * 0.38);
                 int newHeight = static_cast<int>(pieceHeight* 0.38);
                 ImageResize(&pieceImage, newWidth, newHeight);
@@ -171,18 +171,18 @@ void Board::DrawPieces() {
 
 void Board::DrawPromotionMenu(Vector2 position, int color)
 {
-    // Draw the promotion menu background and border
+    // Drawing promotion menu background and border
     DrawRectangleLines(position.x, position.y, 4 * squareSize, squareSize, WHITE);
     
     
-        // Draw the black promotion pieces
+        // Drawing black promotion pieces
         for (int i = 0; i < 4; i++) {
             Vector2 piecePosition = {position.x + i * squareSize, position.y};
             if(color == 0)
             {  
                 DrawTexture(promotionTexture[i], piecePosition.x, piecePosition.y, WHITE);
             }
-            else
+            else// Drawing white promotion pieces
             {
                 DrawTexture(promotionTexture[i+6], piecePosition.x, piecePosition.y, WHITE);
             }
@@ -191,8 +191,8 @@ void Board::DrawPromotionMenu(Vector2 position, int color)
 }
 
 void Board::HandlePawnPromotion(int color, Vector2 position) {
-    int windowWidth = GetScreenWidth();  // Get the current window width
-    int windowHeight = GetScreenHeight();  // Get the current window height
+    int windowWidth = GetScreenWidth();  // Current window width
+    int windowHeight = GetScreenHeight();  // Current window height
 
     int PosX = ((windowWidth - 4 * squareSize) / 2);
     int PosY = ((windowHeight - 40) / 2 - 30);
@@ -205,18 +205,18 @@ void Board::HandlePawnPromotion(int color, Vector2 position) {
             if (CheckCollisionPointRec(mousePos, pieceRect)) {
                 std::cout << "Collision: " << i << std::endl;
 
-                // Find the pawn that is being promoted
+                // Finding pawn that is being promoted
                 for (auto& piece : pieces) {
                     if (Vector2Equals(piece.position, promotionPosition) && piece.type == PAWN && piece.color == color) {
                         std::cout<<"Pawn found"<<std::endl;
-                        // Replace the pawn with the selected piece
+                        // Replacing pawn with the selected piece
                         piece.type = static_cast<PieceType>(i + 1); // i + 1 because 0: Rook, 1: Knight, 2: Bishop, 3: Queen
                         piece.texture = promotionTexture[(color == 0 ? i : i + 6)];
                         break;
                     }
                 }
 
-                PawnPromo = false;  // Close the promotion menu
+                PawnPromo = false;  // Close promotion menu
                 break;
             }
         }
@@ -258,7 +258,7 @@ void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &piec
     int rookX = kingside ? 7 : 0; // Kingside or Queenside rook
     int rookY = kingY;
 
-    // Find the rook
+    // Finding rook
     Piece* rook = nullptr;
     for (auto& piece : pieces) {
         if (piece.type == ROOK && piece.color == king.color &&
@@ -277,7 +277,7 @@ void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &piec
     }
      std::cout << "Rook found at (" << rook->position.x << ", " << rook->position.y << ")" << std::endl;
 
-         // Check if the king or rook has moved
+         // Checking if king or rook has moved
     if (king.hasMoved || rook->hasMoved) {
         std::cout << "Castling not allowed, king or rook has moved." << std::endl;
         return; // Either the king or rook has moved
@@ -322,7 +322,7 @@ void Board::ExecuteEnPassant(Piece& capturingPawn, std::vector<Piece>& pieces, c
         }
     }
 
-    capturingPawn.position = newPosition; // Move the capturing pawn to the new position
+    capturingPawn.position = newPosition; // Move capturing pawn to the new position
 }
 
 void Board::UnloadPieces(){
@@ -353,7 +353,7 @@ void Board::UpdateDragging() {
                 offset = Vector2Subtract(mousePos, pieces[i].position);
                 originalPosition = pieces[i].position;
 
-                // Move the dragged piece to the back of the vector so it is drawn last
+                // Moving the dragged piece to the back of the vector so it is drawn last
                 Piece draggedPiece = pieces[i];
                 pieces.erase(pieces.begin() + i);
                 pieces.push_back(draggedPiece);
@@ -392,7 +392,7 @@ void Board::UpdateDragging() {
                     if (pieces[draggedPieceIndex].color == CurrentPlayer) {
                     if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
                         
-                         // Store original king position
+                         // Original king position
                         Vector2 tempKingPosition;
                         if (pieces[draggedPieceIndex].type == KING) {
                             tempKingPosition = (pieces[draggedPieceIndex].color == 0) ? blackKingPosition : whiteKingPosition;
@@ -405,7 +405,7 @@ void Board::UpdateDragging() {
                              
 
                      
-                        // Check if the move is valid
+                        // Checking if the move is valid
                         if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
                             pieces[draggedPieceIndex].position = newPosition;
 
@@ -448,7 +448,7 @@ void Board::UpdateDragging() {
                                     break;
                                 }
                             }
-                                // Checkmate detection after a valid move
+                            // Checkmate detection after a valid move
                             if(validCapture){
                             
                             pieces[draggedPieceIndex].position = newPosition;
@@ -461,7 +461,6 @@ void Board::UpdateDragging() {
                                             Cwhite = true;
                                         }
                                     Checkmate = true;
-                                        // Handle game over logic (e.g., display message, stop further moves)
                                         return;
                                 }
 
@@ -471,7 +470,7 @@ void Board::UpdateDragging() {
                      }else {
                             pieces[draggedPieceIndex].position = originalPosition;
 
-                            // Revert king's position if the move was invalid
+                            // Reverting king's position if the move was invalid
                             if (pieces[draggedPieceIndex].type == KING) {
                                 if (pieces[draggedPieceIndex].color == 0) {
                                     blackKingPosition = tempKingPosition;
