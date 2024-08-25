@@ -1,9 +1,9 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "Piece.hpp"
 #include <raylib.h>
 #include <vector>
-#include "Piece.hpp"
 
 const int boardSize = 8;
 const int pieceTypes = 6; //  rook, knight, bishop, queen, king, pawn

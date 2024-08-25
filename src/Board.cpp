@@ -1,8 +1,8 @@
-#include <iostream>
 #include "Board.hpp"
-#include <raymath.h>
-#include <algorithm>
 #include "MoveValid.hpp"
+#include <raymath.h>
+#include <iostream>
+#include <string>
 
 //For Global variable
 float squareSize = 112.6;

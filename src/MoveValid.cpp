@@ -1,6 +1,5 @@
 #include "MoveValid.hpp"
 #include <iostream>
-#include <cmath>
 #include <algorithm>
 
 std::tuple<Piece, Vector2, Vector2> MoveValidator::lastMove = std::make_tuple(Piece{}, Vector2{0.0f, 0.0f}, Vector2{0.0f, 0.0f});
@@ -585,7 +584,7 @@ bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::v
     for (auto& piece : pieces) {
         if (Vector2Equals(piece.position, newPosition) && !piece.captured) {
             capturedPiece = &piece;
-            piece.captured = true;
+            capturedPiece->captured = true;
             isCaptured = true;
             break;
         }
@@ -594,12 +593,6 @@ bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::v
     // Moving the king to new position
     king.position = newPosition;
 
-    // Updating the board with the king's new position
-    if (king.color == 0) {
-        board.blackKingPosition = newPosition;
-    } else {
-        board.whiteKingPosition = newPosition;
-    }
 
     // Checking if the king is still in check after moving
     bool isInCheck = false;
@@ -621,16 +614,8 @@ bool MoveValidator::CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::v
         capturedPiece->captured = false;
     }
 
-    // Restoring the board state
-    if (king.color == 0) {
-        board.blackKingPosition = tempKingPosition;
-    } else {
-        board.whiteKingPosition = tempKingPosition;
-    }
-
 
     if (isInCheck) {
-        std::cout << "Move is invalid: King is still in check after the move." << std::endl;
         return false; //King is in check after the move
     }
 

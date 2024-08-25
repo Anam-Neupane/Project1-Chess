@@ -1,8 +1,8 @@
-#include <raylib.h>
-#include <cstddef>
 #include "button.hpp"
 #include "Board.hpp"
+#include <raylib.h>
 #include <iostream>
+// #include <cstddef>
 
 enum GameState
 {
@@ -30,6 +30,7 @@ int main()
 {
     
     Image look = LoadImage("resource/cut.png");
+    Image New = LoadImage("resource/New.png");
 
     // Checking if the image loaded successfully
     if (look.data == nullptr)
@@ -46,9 +47,10 @@ int main()
     SetTargetFPS(60);
 
     // Loading the texture from the image
-    Texture2D background = LoadTextureFromImage(look);
+    Texture2D background = LoadTextureFromImage(New);
 
     UnloadImage(look);
+    UnloadImage(New);
 
     Button startButton{"resource/Picture1.png", {300, 300}, 0.5};
     Button engineButton{"resource/Picture2.png", {300, 450}, 0.5};
@@ -112,6 +114,7 @@ int main()
         {
             // Drawing main menu background and buttons
             DrawTexture(background, 0, 0, WHITE);
+            DrawText("Chess", 380, 130, 100, BLACK);
             startButton.Draw();
             engineButton.Draw();
             exitButton.Draw();
