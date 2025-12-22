@@ -2,7 +2,10 @@
 #include "Board.hpp"
 #include <raylib.h>
 #include <iostream>
+#include "raymath.h"
 // #include <cstddef>
+
+#define MIN(a, b) ((a)<(b)? (a) : (b))
 
 enum GameState
 {
@@ -41,10 +44,23 @@ int main()
     // Screen width and height of the image used as window's dimensions
     int screenHeight = look.height;
     int screenWidth = look.width;
+    
+    std::cout << "Width: " << screenWidth << ", Height: " << screenHeight << std::endl;
 
+    // These are the fixed game resolution (virtual resolution)
+    int gameScreenWidth = screenWidth;
+    int gameScreenHeight = screenHeight;
+
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(screenWidth, screenHeight, "♟️ Chess");
 
+    SetWindowMinSize(800, 600);//minimum window size 
+
     SetTargetFPS(60);
+
+    // Render texture for scaling - all game content is drawn here at fixed resolution
+    RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
     // Loading the texture from the image
     Texture2D background = LoadTextureFromImage(New);
@@ -67,8 +83,19 @@ int main()
 
     while (!WindowShouldClose() && exit == false)
     {
-
+        // Calculate scaling factor to fit game in window while maintaining aspect ratio
+        float scale = MIN((float)GetScreenWidth()/gameScreenWidth, (float)GetScreenHeight()/gameScreenHeight);
         
+        // Calculate offset to center the game in the window (letterboxing)
+        float offsetX = (GetScreenWidth() - (gameScreenWidth * scale)) * 0.5f;
+        float offsetY = (GetScreenHeight() - (gameScreenHeight * scale)) * 0.5f;
+
+        // Apply mouse transformation so GetMousePosition() returns virtual coordinates
+        // This makes Board::UpdateDragging() work correctly without any changes
+        SetMouseOffset((int)(-offsetX), (int)(-offsetY));
+        SetMouseScale(1.0f / scale, 1.0f / scale);
+
+        // Now GetMousePosition() automatically returns virtual game coordinates
         Vector2 mousePosition = GetMousePosition();
         bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
@@ -105,8 +132,8 @@ int main()
         
         }
 
-        // Start drawing
-        BeginDrawing();
+        // Draw everything to the render texture at fixed resolution
+        BeginTextureMode(target);
         ClearBackground(BLACK);
 
         mainmenu:
@@ -124,8 +151,8 @@ int main()
 
             if(Paused)
             {
-                int windowWidth = GetScreenWidth();  // Current window width
-                int windowHeight = GetScreenHeight();  // Current window height
+                int windowWidth = gameScreenWidth;  // Virtual window width
+                int windowHeight = gameScreenHeight ;  // Virtual window height
                 
                 const char* pausedText = "Paused";
                 const char* resumeText = "Press Space to Resume.......";
@@ -148,8 +175,8 @@ int main()
 
                 if(B1.PawnPromo)
                 {
-                    int windowWidth = GetScreenWidth();  
-                    int windowHeight = GetScreenHeight();  
+                    int windowWidth = gameScreenWidth;  // Virtual window width
+                    int windowHeight = gameScreenHeight;  // Virtual window height
 
                     int PosX = ((windowWidth - 4* squareSize) / 2);
                     int PosY = ((windowHeight - 40) /2 -30);
@@ -167,8 +194,8 @@ int main()
                 }
 
                 else if (B1.Checkmate) {
-                    int windowWidth = GetScreenWidth();
-                    int windowHeight = GetScreenHeight();
+                    int windowWidth = gameScreenWidth;  // Virtual window width
+                    int windowHeight = gameScreenHeight;  // Virtual window height
 
                     int PosX = ((windowWidth - 4 * squareSize) / 2);
                     int PosY = ((windowHeight - 40) / 2 - 30);
@@ -198,11 +225,22 @@ int main()
 
         }
 
-        // End drawing
+        EndTextureMode();
+
+        // Now draw the render texture to the actual screen, scaled and centered
+        BeginDrawing();
+            ClearBackground(BLACK);  // Letterbox color
+            
+            // Draw render texture scaled to fit window
+            DrawTexturePro(target.texture, 
+                (Rectangle){ 0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height },
+                (Rectangle){ offsetX, offsetY, (float)gameScreenWidth * scale, (float)gameScreenHeight * scale },
+                (Vector2){ 0, 0 }, 0.0f, WHITE);
         EndDrawing();
     }
 
     // Unloading textures and closing the window
+    UnloadRenderTexture(target);
     UnloadTexture(background);
     UnloadTexture(boardTexture);
     B1.UnloadPieces();

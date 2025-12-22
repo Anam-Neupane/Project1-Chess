@@ -191,17 +191,12 @@ void Board::DrawPromotionMenu(Vector2 position, int color)
 }
 
 void Board::HandlePawnPromotion(int color, Vector2 position) {
-    int windowWidth = GetScreenWidth();  // Current window width
-    int windowHeight = GetScreenHeight();  // Current window height
-
-    int PosX = ((windowWidth - 4 * squareSize) / 2);
-    int PosY = ((windowHeight - 40) / 2 - 30);
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         Vector2 mousePos = GetMousePosition();
 
         for (int i = 0; i < 4; i++) {
-            Rectangle pieceRect = {static_cast<float>(PosX) + i * squareSize, static_cast<float>(PosY), squareSize, squareSize};
+            Rectangle pieceRect = {static_cast<float>(position.x) + i * squareSize, static_cast<float>(position.y), squareSize, squareSize};
             if (CheckCollisionPointRec(mousePos, pieceRect)) {
                 std::cout << "Collision: " << i << std::endl;
 

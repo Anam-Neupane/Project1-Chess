@@ -10,6 +10,7 @@ const int pieceTypes = 6; //  rook, knight, bishop, queen, king, pawn
 const int pieceColors = 2; // black, white
 class Board{
     private:
+    
         std::vector<Piece> pieces; //class object;
         float pieceWidth;
         float pieceHeight;
