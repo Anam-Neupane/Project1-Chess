@@ -10,10 +10,13 @@
 enum GameState
 {
     MAIN_MENU,
-    GAME
+    GAME,
+    ENGINE_GAME
 };
 
 bool Paused = false;
+
+GameMode currentGameMode = PVP_LOCAL;
 
 void ToggleFullScreenWindow(int WindowWidth,int Windowheight)
 {
@@ -48,7 +51,9 @@ int main()
     std::cout << "Width: " << screenWidth << ", Height: " << screenHeight << std::endl;
 
     // These are the fixed game resolution (virtual resolution)
-    int gameScreenWidth = screenWidth;
+    // Add extra width for side panel (player turn, captured pieces display)
+    int sidePanelWidth = 200;
+    int gameScreenWidth = screenWidth + sidePanelWidth;
     int gameScreenHeight = screenHeight;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
@@ -104,13 +109,19 @@ int main()
         {
             if (startButton.isPressed(mousePosition, mousePressed))
             {
-                std::cout << "Start Button Pressed" << std::endl;
+                std::cout << "Start of 1v1 Game" << std::endl;
+                currentGameMode = PVP_LOCAL;
+                B1.SetGameMode(PVP_LOCAL);
                 gameState = GAME; // Switching to the game state
+
             }
 
             if (engineButton.isPressed(mousePosition, mousePressed))
             {
-                std::cout << "Engine Start Bhruuuhuuhhuhu😂" << std::endl;
+                std::cout << "Starting Engine Game" << std::endl;
+                currentGameMode = VS_ENGINE;
+                B1.SetGameMode(VS_ENGINE);
+                gameState = GAME; // Switching to the game state
             }
 
             if (exitButton.isPressed(mousePosition, mousePressed))
@@ -119,7 +130,7 @@ int main()
             }
         }
         
-        if(gameState == GAME)
+        if(gameState == GAME || gameState == ENGINE_GAME)
         {        
                if(IsKeyPressed(KEY_F))
             {   
@@ -136,7 +147,6 @@ int main()
         BeginTextureMode(target);
         ClearBackground(BLACK);
 
-        mainmenu:
         if (gameState == MAIN_MENU)
         {
             // Drawing main menu background and buttons
@@ -146,7 +156,7 @@ int main()
             engineButton.Draw();
             exitButton.Draw();
         }
-        else if (gameState == GAME)
+        else if (gameState == GAME || gameState == ENGINE_GAME)
         {
 
             if(Paused)
@@ -202,21 +212,17 @@ int main()
                     DrawRectangle(0, 0, windowWidth, windowHeight, Fade(MAROON, 0.6f));
                     DrawText("Checkmate ¬_¬ ", PosX - 80, PosY - 130, 90, WHITE);
                     B1.Cwhite ? DrawText("White Wins", PosX + 35, PosY, 60, BEIGE) : DrawText("Black Wins", PosX, PosY, 60, BEIGE);
-                    DrawText("Press R to Restart", PosX + 10, PosY + 70, 40, SKYBLUE);
 
-                    if (IsKeyPressed(KEY_R)) {
-                        B1.Reset();  
-                        gameState = MAIN_MENU;  // Returning to main menu
-                        goto mainmenu;
-                    }
                 }
 
                 else{
 
                      DrawTexture(boardTexture, 0, 55, WHITE);
-                     DrawRectangle(914,55,180,910,BROWN);
-                     DrawRectangle(1100,55,700,455,DARKBROWN);
-                     DrawRectangle(1100,510,700,455,BEIGE);
+                    // Side panel - fits within the extended screen width
+                     DrawRectangle(914,55, sidePanelWidth + 180,910,BROWN);
+                    //  DrawRectangle(1100,55,700,455,DARKBROWN);
+                    //  DrawRectangle(1100,510,700,455,BEIGE);
+
                      B1.UpdateDragging();
                      B1.DrawPlayer(); 
                      B1.DrawPieces(); 

@@ -22,33 +22,45 @@ int Board::GetPieceValue(int pieceType)
 }
 //Constructor
 Board::Board() : dragging(false), draggedPieceIndex(-1), CurrentPlayer(1),
-    whiteScorePosition({boardPosition.x+5 , boardPosition.y + squareSize * 8 + 10}),//Initialization of the Score Position
-    blackScorePosition({boardPosition.x+5 , boardPosition.y - 25}), 
-    //Initialization of Player's Turn Position
-    playerturnPosition({boardPosition.x + squareSize * 8 + 19, boardPosition.y + squareSize * 4 - 29}),
-    blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
-    whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
-    {}
+                 whiteScorePosition({boardPosition.x + 5, boardPosition.y + squareSize * 8 + 10}), // Initialization of the Score Position
+                 blackScorePosition({boardPosition.x + 5, boardPosition.y - 25}),
+                 // Initialization of Player's Turn Position
+                 playerturnPosition({boardPosition.x + squareSize * 8 + 93, boardPosition.y + squareSize * 4 - 29}),
+                 blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
+                 whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
+{
+}
 
-void Board::DrawScores() {//Drawing scores
+void Board::DrawScores()
+{ // Drawing scores
     std::string whiteScoreText = "White : " + std::to_string(whiteScore);
     std::string blackScoreText = "Black : " + std::to_string(blackScore);
 
-    DrawText(whiteScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
-    DrawText(blackScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
+    // Swap score positions when board is flipped
+    if (gameMode == PVP_LOCAL && isBoardFlipped) {
+        // White score at top, Black score at bottom (flipped)
+        DrawText(whiteScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
+        DrawText(blackScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
+    } else {
+        // Normal: White at bottom, Black at top
+        DrawText(whiteScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
+        DrawText(blackScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
+    }
 }
 
-void Board::DrawPlayer(){
-    if(CurrentPlayer)
+
+void Board::DrawPlayer()
+{
+    if (CurrentPlayer)
     {
-        DrawRectangle(playerturnPosition.x-5, playerturnPosition.y-6, 180, 80, BLACK);
-        DrawRectangle(playerturnPosition.x-5, playerturnPosition.y, 180, 68, WHITE);
-        DrawText("WHITE's \n \n  Turn", playerturnPosition.x, playerturnPosition.y, 40, BLACK);
+        DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y - 6, 220, 80, BLACK);
+        DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y, 220, 68, WHITE);
+        DrawText("WHITE's \n \n  Turn", playerturnPosition.x + 20, playerturnPosition.y, 40, BLACK);
     }
     else
-    {   
-        DrawRectangle(playerturnPosition.x-5, playerturnPosition.y-6, 180, 80, BLACK);
-        DrawText("BLACK's \n \n  Turn", playerturnPosition.x, playerturnPosition.y, 40, WHITE);
+    {
+        DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y - 6, 220, 80, BLACK);
+        DrawText("BLACK's \n \n  Turn", playerturnPosition.x + 20, playerturnPosition.y, 40, WHITE);
     }
 }
 
@@ -84,9 +96,9 @@ void Board::LoadPieces()
 
 
     // Figure1.png contains two rows of pieces: one for black and one for white
-     pieceWidth = piecesImage.width / pieceTypes;
-     pieceHeight = piecesImage.height / pieceColors;
-    
+    pieceWidth = piecesImage.width / pieceTypes;
+    pieceHeight = piecesImage.height / pieceColors;
+
     Texture2D pieceTextures[pieceTypes * pieceColors];
 
     for (int y = 0; y < pieceColors; y++) {
@@ -130,7 +142,8 @@ void Board::LoadPromotionTexture()
 {
     Image piecesImage = LoadImage("resource/figure1.png");
 
-    if (piecesImage.data == nullptr) {//For checking if the file is loaded correctly.
+    if (piecesImage.data == nullptr) {
+    //For checking if the file is loaded correctly.
     std::cout << "Failed to load image: resource/figure1.png" << std::endl;
     return;
 }
@@ -143,8 +156,8 @@ void Board::LoadPromotionTexture()
     for (int y = 0; y < pieceColors; y++) {
         for (int x = 0; x < pieceTypes; x++) {
 
-            Image pieceImage = ImageFromImage(piecesImage, Rectangle{static_cast<float>(x*pieceWidth),
-             static_cast<float>(y*pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
+            Image pieceImage = ImageFromImage(piecesImage, Rectangle{static_cast<float>(x * pieceWidth),
+                                                                     static_cast<float>(y * pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
 
 
             //For resizing the pieces cuz it's too biggggg....
@@ -162,10 +175,23 @@ void Board::LoadPromotionTexture()
 
 }
 
-void Board::DrawPieces() {
+void Board::DrawPieces()
+{
     DrawScores();
-    for (const auto& piece : pieces) {
-        DrawTexture(piece.texture, piece.position.x, piece.position.y, WHITE);
+    for (const auto &piece : pieces)
+    {
+        if (piece.captured)
+        {
+            // Draw captured pieces at smaller scale in side panel
+            float capturedScale = 0.6f; // 60% of original size
+            DrawTextureEx(piece.texture, piece.position, 0.0f, capturedScale, WHITE);
+        }
+        else
+        {
+            // Transform position for flipped board (PVP_LOCAL only)
+            Vector2 drawPos = TransformPosition(piece.position);
+            DrawTexture(piece.texture, drawPos.x, drawPos.y, WHITE);
+        }
     }
 }
 
@@ -173,37 +199,43 @@ void Board::DrawPromotionMenu(Vector2 position, int color)
 {
     // Drawing promotion menu background and border
     DrawRectangleLines(position.x, position.y, 4 * squareSize, squareSize, WHITE);
-    
-    
-        // Drawing black promotion pieces
-        for (int i = 0; i < 4; i++) {
-            Vector2 piecePosition = {position.x + i * squareSize, position.y};
-            if(color == 0)
-            {  
-                DrawTexture(promotionTexture[i], piecePosition.x, piecePosition.y, WHITE);
-            }
-            else// Drawing white promotion pieces
-            {
-                DrawTexture(promotionTexture[i+6], piecePosition.x, piecePosition.y, WHITE);
-            }
+
+    // Drawing black promotion pieces
+    for (int i = 0; i < 4; i++)
+    {
+        Vector2 piecePosition = {position.x + i * squareSize, position.y};
+        if (color == 0)
+        {
+            DrawTexture(promotionTexture[i], piecePosition.x, piecePosition.y, WHITE);
         }
-        HandlePawnPromotion(color, position);
+        else // Drawing white promotion pieces
+        {
+            DrawTexture(promotionTexture[i + 6], piecePosition.x, piecePosition.y, WHITE);
+        }
+    }
+    HandlePawnPromotion(color, position);
 }
 
-void Board::HandlePawnPromotion(int color, Vector2 position) {
+void Board::HandlePawnPromotion(int color, Vector2 position)
+{
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
         Vector2 mousePos = GetMousePosition();
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++)
+        {
             Rectangle pieceRect = {static_cast<float>(position.x) + i * squareSize, static_cast<float>(position.y), squareSize, squareSize};
-            if (CheckCollisionPointRec(mousePos, pieceRect)) {
+            if (CheckCollisionPointRec(mousePos, pieceRect))
+            {
                 std::cout << "Collision: " << i << std::endl;
 
                 // Finding pawn that is being promoted
-                for (auto& piece : pieces) {
-                    if (Vector2Equals(piece.position, promotionPosition) && piece.type == PAWN && piece.color == color) {
-                        std::cout<<"Pawn found"<<std::endl;
+                for (auto &piece : pieces)
+                {
+                    if (Vector2Equals(piece.position, promotionPosition) && piece.type == PAWN && piece.color == color)
+                    {
+                        std::cout << "Pawn found" << std::endl;
                         // Replacing pawn with the selected piece
                         piece.type = static_cast<PieceType>(i + 1); // i + 1 because 0: Rook, 1: Knight, 2: Bishop, 3: Queen
                         piece.texture = promotionTexture[(color == 0 ? i : i + 6)];
@@ -211,7 +243,7 @@ void Board::HandlePawnPromotion(int color, Vector2 position) {
                     }
                 }
 
-                PawnPromo = false;  // Close promotion menu
+                PawnPromo = false; // Close promotion menu
                 break;
             }
         }
@@ -219,43 +251,53 @@ void Board::HandlePawnPromotion(int color, Vector2 position) {
 }
 
 void Board::CapturePiece(int capturedPieceIndex)
-{std::cout << "Captured piece index: " << capturedPieceIndex << std::endl;
-    float offset = 92.0; // Space between pieces in the captured section
-    int piecesPerRow = 7; // Number of pieces per row in the captured section
-    
+{
+    std::cout << "Captured piece index: " << capturedPieceIndex << std::endl;
+
+    // Side panel captured pieces layout
+    float sidePanelX = 920; // Start X position in side panel
+    float spacing = 70;     // Space between pieces
+    int piecesPerRow = 5;   // Pieces per row in side panel
+
     int pieceValue = GetPieceValue(pieces[capturedPieceIndex].type);
 
-    if (pieces[capturedPieceIndex].color == 1) { // Captured by black
-    blackScore += pieceValue;
+    if (pieces[capturedPieceIndex].color == 1)
+    { // White piece captured by black - show in top section of side panel
+        blackScore += pieceValue;
         int row = whiteCapturedCount / piecesPerRow;
         int col = whiteCapturedCount % piecesPerRow;
 
-        pieces[capturedPieceIndex].position.x = boardPosition.x + 10 * squareSize + offset * col;
-        pieces[capturedPieceIndex].position.y = boardPosition.y + row * squareSize + offset;
+        pieces[capturedPieceIndex].position.x = sidePanelX + spacing * col;
+        pieces[capturedPieceIndex].position.y = boardPosition.y + 20 + row * spacing; // Top area
 
         whiteCapturedCount++;
-    } else { // Captured by white
-    whiteScore += pieceValue;
+    }
+    else
+    { // Black piece captured by white - show in bottom section of side panel
+        whiteScore += pieceValue;
         int row = blackCapturedCount / piecesPerRow;
         int col = blackCapturedCount % piecesPerRow;
 
-        pieces[capturedPieceIndex].position.x = boardPosition.x + 10 * squareSize + offset * col;
-        pieces[capturedPieceIndex].position.y = boardPosition.y + 7.2 * squareSize - (row * squareSize + offset);
+        pieces[capturedPieceIndex].position.x = sidePanelX + spacing * col;
+        // New rows go upward (subtract row * spacing)
+        pieces[capturedPieceIndex].position.y = boardPosition.y + 7 * squareSize + 20 - row * spacing;
 
         blackCapturedCount++;
     }
     pieces[capturedPieceIndex].captured = true;
 }
 
-void Board::ExecuteCastling( Piece &king, bool kingside,std::vector<Piece> &pieces,const Vector2 originalPosition) {
-    
+void Board::ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &pieces, const Vector2 originalPosition)
+{
+
     int kingY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
     int rookX = kingside ? 7 : 0; // Kingside or Queenside rook
     int rookY = kingY;
 
     // Finding rook
-    Piece* rook = nullptr;
-    for (auto& piece : pieces) {
+    Piece *rook = nullptr;
+    for (auto &piece : pieces)
+    {
         if (piece.type == ROOK && piece.color == king.color &&
             static_cast<int>((piece.position.x - boardPosition.x) / squareSize) == rookX &&
             static_cast<int>((piece.position.y - boardPosition.y) / squareSize) == rookY) {
@@ -320,29 +362,39 @@ void Board::ExecuteEnPassant(Piece& capturingPawn, std::vector<Piece>& pieces, c
     capturingPawn.position = newPosition; // Move capturing pawn to the new position
 }
 
-void Board::UnloadPieces(){
-    for (auto& piece : pieces) {
+void Board::UnloadPieces()
+{
+    for (auto &piece : pieces)
+    {
         UnloadTexture(piece.texture);
     }
 }
 
-//For Drag and Drop (Basically moving)
-void Board::UpdateDragging() {
+// For Drag and Drop (Basically moving)
+void Board::UpdateDragging()
+{
     mousePos = GetMousePosition();
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        for (std::size_t i = 0; i < pieces.size(); i++) {
 
-            // For Skiping Captured Pieces 
-            if(pieces[i].captured)
+    // Transform mouse for flipped board (PVP_LOCAL only)
+    mousePos = TransformMouse(mousePos);
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+        for (std::size_t i = 0; i < pieces.size(); i++)
+        {
+
+            // For Skiping Captured Pieces
+            if (pieces[i].captured)
             {
                 continue;
             }
             /*---------------------------------------------*/
 
             Rectangle pieceRect = {pieces[i].position.x,
-                 pieces[i].position.y , squareSize, squareSize}; 
+                                   pieces[i].position.y, squareSize, squareSize};
 
-            if (CheckCollisionPointRec(mousePos,pieceRect)){
+            if (CheckCollisionPointRec(mousePos, pieceRect))
+            {
                 dragging = true;
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
@@ -397,17 +449,20 @@ void Board::UpdateDragging() {
                         {
                             pieces[draggedPieceIndex].hasMoved = true;
                         }
-                             
 
-                     
                         // Checking if the move is valid
-                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this)) {
+                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this))
+                        {
                             pieces[draggedPieceIndex].position = newPosition;
 
-                                if (pieces[draggedPieceIndex].type == KING) {
-                                if (pieces[draggedPieceIndex].color == 0) { // Black King
+                            if (pieces[draggedPieceIndex].type == KING)
+                            {
+                                if (pieces[draggedPieceIndex].color == 0)
+                                { // Black King
                                     blackKingPosition = newPosition;
-                                } else if (pieces[draggedPieceIndex].color == 1) { // White King
+                                }
+                                else if (pieces[draggedPieceIndex].color == 1)
+                                { // White King
                                     whiteKingPosition = newPosition;
                                 }
                             }
@@ -459,25 +514,40 @@ void Board::UpdateDragging() {
                                         return;
                                 }
 
-                            CurrentPlayer = (CurrentPlayer +1)%2;
+                                CurrentPlayer = (CurrentPlayer + 1) % 2;
+
+                                // Flip board for next player (only in PVP_LOCAL mode)
+                                if (gameMode == PVP_LOCAL)
+                                {
+                                    isBoardFlipped = !isBoardFlipped;
+                                }
+                            }
                         }
-                  
-                     }else {
+                        else
+                        {
                             pieces[draggedPieceIndex].position = originalPosition;
 
                             // Reverting king's position if the move was invalid
-                            if (pieces[draggedPieceIndex].type == KING) {
-                                if (pieces[draggedPieceIndex].color == 0) {
+                            if (pieces[draggedPieceIndex].type == KING)
+                            {
+                                if (pieces[draggedPieceIndex].color == 0)
+                                {
                                     blackKingPosition = tempKingPosition;
-                                } else if (pieces[draggedPieceIndex].color == 1) {
+                                }
+                                else if (pieces[draggedPieceIndex].color == 1)
+                                {
                                     whiteKingPosition = tempKingPosition;
                                 }
                             }
                         }
-                    } else {
+                    }
+                    else
+                    {
                         pieces[draggedPieceIndex].position = originalPosition;
                     }
-                } else {
+                }
+                else
+                {
                     pieces[draggedPieceIndex].position = originalPosition;
                 }
             }
