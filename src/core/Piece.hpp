@@ -2,9 +2,7 @@
 #define PIECE_HPP
 
 #include <raylib.h>
-
-extern float squareSize;
-extern Vector2 boardPosition;
+#include "Constants.hpp"
 
 enum PieceType {
     NONE = 0,

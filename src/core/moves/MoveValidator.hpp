@@ -1,10 +1,11 @@
 #ifndef MOVEVALID_HPP
 #define MOVEVALID_HPP
 
-#include "Piece.hpp"
-#include "Board.hpp"
+#include "../Piece.hpp"
 #include <vector>
 #include <tuple>
+
+class Board; // Forward Declaration
 
 class MoveValidator {
     private: 

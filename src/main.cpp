@@ -1,5 +1,6 @@
-#include "button.hpp"
-#include "Board.hpp"
+#include "ui/button.hpp"
+#include "core/Board.hpp"
+#include "core/GameState.hpp"
 #include <raylib.h>
 #include <iostream>
 #include "raymath.h"
@@ -7,7 +8,8 @@
 
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 
-enum GameState
+// Renamed to avoid conflict with GameState class
+enum AppState
 {
     MAIN_MENU,
     GAME,
@@ -15,8 +17,6 @@ enum GameState
 };
 
 bool Paused = false;
-
-GameMode currentGameMode = PVP_LOCAL;
 
 void ToggleFullScreenWindow(int WindowWidth,int Windowheight)
 {
@@ -79,12 +79,15 @@ int main()
     bool exit = false;
 
     Texture2D boardTexture = LoadTexture("resource/board0.png");
-    Board B1;
+    
+    // Create GameState object and pass to Board
+    GameState chessGameState;
+    Board B1(&chessGameState);
     B1.LoadPieces();
     B1.LoadPromotionTexture();
 
-    // Current game state
-    GameState gameState = MAIN_MENU;
+    // Current app state (menu navigation)
+    AppState appState = MAIN_MENU;
 
     while (!WindowShouldClose() && exit == false)
     {
@@ -104,24 +107,22 @@ int main()
         Vector2 mousePosition = GetMousePosition();
         bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
-        // Handle input based on the current game state
-        if (gameState == MAIN_MENU)
+        // Handle input based on the current app state
+        if (appState == MAIN_MENU)
         {
             if (startButton.isPressed(mousePosition, mousePressed))
             {
                 std::cout << "Start of 1v1 Game" << std::endl;
-                currentGameMode = PVP_LOCAL;
-                B1.SetGameMode(PVP_LOCAL);
-                gameState = GAME; // Switching to the game state
+                chessGameState.setGameMode(GameMode::PVP_LOCAL);
+                appState = GAME; // Switching to the game state
 
             }
 
             if (engineButton.isPressed(mousePosition, mousePressed))
             {
                 std::cout << "Starting Engine Game" << std::endl;
-                currentGameMode = VS_ENGINE;
-                B1.SetGameMode(VS_ENGINE);
-                gameState = GAME; // Switching to the game state
+                chessGameState.setGameMode(GameMode::VS_ENGINE);
+                appState = GAME; // Switching to the game state
             }
 
             if (exitButton.isPressed(mousePosition, mousePressed))
@@ -130,7 +131,7 @@ int main()
             }
         }
         
-        if(gameState == GAME || gameState == ENGINE_GAME)
+        if(appState == GAME || appState == ENGINE_GAME)
         {        
                if(IsKeyPressed(KEY_F))
             {   
@@ -147,7 +148,7 @@ int main()
         BeginTextureMode(target);
         ClearBackground(BLACK);
 
-        if (gameState == MAIN_MENU)
+        if (appState == MAIN_MENU)
         {
             // Drawing main menu background and buttons
             DrawTexture(background, 0, 0, WHITE);
@@ -156,7 +157,7 @@ int main()
             engineButton.Draw();
             exitButton.Draw();
         }
-        else if (gameState == GAME || gameState == ENGINE_GAME)
+        else if (appState == GAME || appState == ENGINE_GAME)
         {
 
             if(Paused)
@@ -209,6 +210,7 @@ int main()
 
                     int PosX = ((windowWidth - 4 * squareSize) / 2);
                     int PosY = ((windowHeight - 40) / 2 - 30);
+                    
                     DrawRectangle(0, 0, windowWidth, windowHeight, Fade(MAROON, 0.6f));
                     DrawText("Checkmate ¬_¬ ", PosX - 80, PosY - 130, 90, WHITE);
                     B1.Cwhite ? DrawText("White Wins", PosX + 35, PosY, 60, BEIGE) : DrawText("Black Wins", PosX, PosY, 60, BEIGE);

@@ -1,4 +1,5 @@
-#include "MoveValid.hpp"
+#include "MoveValidator.hpp"
+#include "../Board.hpp"
 #include <iostream>
 #include <algorithm>
 

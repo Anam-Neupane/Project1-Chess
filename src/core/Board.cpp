@@ -1,5 +1,5 @@
 #include "Board.hpp"
-#include "MoveValid.hpp"
+#include "moves/MoveValidator.hpp"
 #include <raymath.h>
 #include <iostream>
 #include <string>
@@ -21,7 +21,7 @@ int Board::GetPieceValue(int pieceType)
     }
 }
 //Constructor
-Board::Board() : dragging(false), draggedPieceIndex(-1), CurrentPlayer(1),
+Board::Board(GameState* state) : gameState(state), dragging(false), draggedPieceIndex(-1),
                  whiteScorePosition({boardPosition.x + 5, boardPosition.y + squareSize * 8 + 10}), // Initialization of the Score Position
                  blackScorePosition({boardPosition.x + 5, boardPosition.y - 25}),
                  // Initialization of Player's Turn Position
@@ -33,11 +33,11 @@ Board::Board() : dragging(false), draggedPieceIndex(-1), CurrentPlayer(1),
 
 void Board::DrawScores()
 { // Drawing scores
-    std::string whiteScoreText = "White : " + std::to_string(whiteScore);
-    std::string blackScoreText = "Black : " + std::to_string(blackScore);
+    std::string whiteScoreText = "White : " + std::to_string(gameState->getWhiteScore());
+    std::string blackScoreText = "Black : " + std::to_string(gameState->getBlackScore());
 
     // Swap score positions when board is flipped
-    if (gameMode == PVP_LOCAL && isBoardFlipped) {
+    if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped()) {
         // White score at top, Black score at bottom (flipped)
         DrawText(whiteScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
         DrawText(blackScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
@@ -51,7 +51,7 @@ void Board::DrawScores()
 
 void Board::DrawPlayer()
 {
-    if (CurrentPlayer)
+    if (gameState->getCurrentPlayer() == 1)
     {
         DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y - 6, 220, 80, BLACK);
         DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y, 220, 68, WHITE);
@@ -68,21 +68,6 @@ Board::~Board(){
     UnloadPieces();
 }
 
-void Board::Reset()
-{
-    pieces.clear();
-    whiteCapturedCount = 0;
-    blackCapturedCount = 0;
-    whiteScore = 0;
-    blackScore = 0;
-    CurrentPlayer = 1;
-    PawnPromo = false;
-    Checkmate = false;
-    Cwhite = false;
-    LoadPieces();
-    blackKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y};
-    whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};
-}
 
 void Board::LoadPieces()
 {
@@ -261,9 +246,16 @@ void Board::CapturePiece(int capturedPieceIndex)
 
     int pieceValue = GetPieceValue(pieces[capturedPieceIndex].type);
 
+    // Use gameState for score tracking
+    int capturingColor = (pieces[capturedPieceIndex].color == 1) ? 0 : 1; // Opposite color captures
+    gameState->addCapture(capturingColor, pieceValue);
+
+    // Calculate position in side panel based on capture counts
+    static int whiteCapturedCount = 0;
+    static int blackCapturedCount = 0;
+
     if (pieces[capturedPieceIndex].color == 1)
     { // White piece captured by black - show in top section of side panel
-        blackScore += pieceValue;
         int row = whiteCapturedCount / piecesPerRow;
         int col = whiteCapturedCount % piecesPerRow;
 
@@ -274,7 +266,6 @@ void Board::CapturePiece(int capturedPieceIndex)
     }
     else
     { // Black piece captured by white - show in bottom section of side panel
-        whiteScore += pieceValue;
         int row = blackCapturedCount / piecesPerRow;
         int col = blackCapturedCount % piecesPerRow;
 
@@ -436,7 +427,7 @@ void Board::UpdateDragging()
                 Vector2 newPosition = Vector2 {snappedX,snappedY};
 
                 //Checking the turn of the player(UI improvement)
-                    if (pieces[draggedPieceIndex].color == CurrentPlayer) {
+                    if (pieces[draggedPieceIndex].color == gameState->getCurrentPlayer()) {
                     if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
                         
                          // Original king position
@@ -503,10 +494,10 @@ void Board::UpdateDragging()
                             
                             pieces[draggedPieceIndex].position = newPosition;
   
-                                if (MoveValidator::IsCheckmate(pieces, CurrentPlayer == 0 ? 1 : 0,*this)) {
+                                if (MoveValidator::IsCheckmate(pieces, gameState->getCurrentPlayer() == 0 ? 1 : 0,*this)) {
                                     std::cout << "Checkmate detected!" << std::endl;
-                                    std::cout<<(CurrentPlayer == 1 ? "White Wins" : "Black Wins")<<std::endl; 
-                                        if(CurrentPlayer == 1)
+                                    std::cout<<(gameState->getCurrentPlayer() == 1 ? "White Wins" : "Black Wins")<<std::endl; 
+                                        if(gameState->getCurrentPlayer() == 1)
                                         {
                                             Cwhite = true;
                                         }
@@ -514,13 +505,8 @@ void Board::UpdateDragging()
                                         return;
                                 }
 
-                                CurrentPlayer = (CurrentPlayer + 1) % 2;
-
-                                // Flip board for next player (only in PVP_LOCAL mode)
-                                if (gameMode == PVP_LOCAL)
-                                {
-                                    isBoardFlipped = !isBoardFlipped;
-                                }
+                                // Switch player and flip board (handled by GameState)
+                                gameState->switchPlayer();
                             }
                         }
                         else

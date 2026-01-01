@@ -2,6 +2,7 @@
 #define BOARD_H
 
 #include "Piece.hpp"
+#include "GameState.hpp"
 #include <raylib.h>
 #include <vector>
 
@@ -9,15 +10,10 @@ const int boardSize = 8;
 const int pieceTypes = 6;  //  rook, knight, bishop, queen, king, pawn
 const int pieceColors = 2; // black, white
 
-enum GameMode
-{
-    PVP_LOCAL,
-    VS_ENGINE
-};
-
 class Board
 {
 private:
+    GameState *gameState;      // Must be first - used by other members during init
     std::vector<Piece> pieces; // class object;
     float pieceWidth;
     float pieceHeight;
@@ -26,31 +22,28 @@ private:
     int draggedPieceIndex;
     Vector2 originalPosition;
     Vector2 offset;
-    int CurrentPlayer; // 0 for black and 1 for white
     Texture2D promotionTexture[12];
 
-    GameMode gameMode = PVP_LOCAL; // Current game mode
-    bool isBoardFlipped = false; // For board rotation in PVP_Local mode
-
     // Helper methods for board rotation
-    Vector2 TransformPosition(Vector2 pos){
-        if(gameMode == PVP_LOCAL && isBoardFlipped){
-           //Flip position: (0,0) become (7,7), and so on.
+    Vector2 TransformPosition(Vector2 pos)
+    {
+        if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped())
+        {
+            // Flip position: (0,0) become (7,7), and so on.
             return {
                 (7 * squareSize) - pos.x,
-                (7 * squareSize) - pos.y + 110
-            };
-            
+                (7 * squareSize) - pos.y + 110};
         }
         return pos;
     }
 
-    Vector2 TransformMouse (Vector2 mousePos) {
-        if (gameMode == PVP_LOCAL && isBoardFlipped) {
+    Vector2 TransformMouse(Vector2 mousePos)
+    {
+        if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped())
+        {
             return {
                 (8 * squareSize) - mousePos.x,
-                (8 * squareSize) - mousePos.y + 110
-            };
+                (8 * squareSize) - mousePos.y + 110};
         }
         return mousePos;
     }
@@ -65,19 +58,15 @@ private:
         {-6, -6, -6, -6, -6, -6, -6, -6},
         {-1, -2, -3, -4, -5, -3, -2, -1}};
 
-        //For capturing and recording.
-        int whiteCapturedCount = 0;
-        int blackCapturedCount = 0;
-        int whiteScore = 0;
-        int blackScore = 0;
-        int GetPieceValue(int pieceType);
+    // For capturing and recording.
+    int GetPieceValue(int pieceType);
 
-        //For showing points
-        Vector2 whiteScorePosition;
-        Vector2 blackScorePosition;
+    // For showing points
+    Vector2 whiteScorePosition;
+    Vector2 blackScorePosition;
 
-        //For showing Player's Turn
-        Vector2 playerturnPosition;
+    // For showing Player's Turn
+    Vector2 playerturnPosition;
 
 public:
     bool PawnPromo = false;
@@ -86,19 +75,13 @@ public:
     bool Cwhite = false;
 
     bool p1;
-    Board();
+    Board(GameState *state);
     ~Board();
-
-    void SetGameMode(GameMode mode) {
-        gameMode = mode;
-        isBoardFlipped = false;  // Reset flip when mode changes
-    }
 
     Vector2 promotionPosition; // Storing pawn's position for promotion
     Vector2 blackKingPosition;
     Vector2 whiteKingPosition;
 
-    void Reset();
     void LoadPieces();
     void LoadPromotionTexture();
     void DrawPieces();
