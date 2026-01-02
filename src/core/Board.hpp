@@ -3,12 +3,9 @@
 
 #include "Piece.hpp"
 #include "GameState.hpp"
+#include "Constants.hpp"
 #include <raylib.h>
 #include <vector>
-
-const int boardSize = 8;
-const int pieceTypes = 6;  //  rook, knight, bishop, queen, king, pawn
-const int pieceColors = 2; // black, white
 
 class Board
 {

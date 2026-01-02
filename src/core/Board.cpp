@@ -1,5 +1,5 @@
 #include "Board.hpp"
-#include "moves/MoveValidator.hpp"
+#include "moves/hpp/MoveValidator.hpp"
 #include <raymath.h>
 #include <iostream>
 #include <string>
