@@ -79,6 +79,7 @@ public:
     Vector2 blackKingPosition;
     Vector2 whiteKingPosition;
 
+    void Reset();
     void LoadPieces();
     void LoadPromotionTexture();
     void DrawPieces();

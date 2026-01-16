@@ -540,3 +540,25 @@ void Board::UpdateDragging()
         }
     }
 }
+
+void Board::Reset() {
+    // First unload old pieces texture/ it is inefficient but safe
+    UnloadPieces();
+    
+    pieces.clear(); // Clear the pieces vector
+
+    Checkmate = false;
+    PawnPromo = false;
+    Cwhite = false;
+    dragging = false;
+    draggedPieceIndex = -1;
+
+    // REset king position to starting position
+    whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};
+    blackKingPosition = {boardPosition.y + 4 * squareSize, boardPosition.y};
+
+    // Reset GameState (scores, current player, board flip)
+    gameState -> reset();
+
+    LoadPieces();
+}
