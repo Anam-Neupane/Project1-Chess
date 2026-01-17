@@ -127,6 +127,12 @@ int main()
             {
                 Paused = !Paused;
             }
+
+            // Toggle valid move highlights with 'M' key
+            if(IsKeyPressed(KEY_M) && !Paused && !B1.Checkmate)
+            {
+                B1.ToggleShowValidMoves();
+            }
         }
 
         if((appState == GAME || appState == ENGINE_GAME) && B1.Checkmate && !Paused) {
@@ -280,7 +286,9 @@ int main()
                 {
                     DrawTexture(boardTexture, 0, 55, WHITE); // Drawing the Board
 
-                    B1.DrawLastMoveHightlight();
+                    B1.DrawLastMoveHightlight(); // Draw highlight for last move of piece  
+
+                    B1.DrawValidMoveHighlights(); // Draw valid move highlight
 
                     // Side panel
                     DrawRectangle(914, 55, sidePanelWidth + 180, 910, BROWN);

@@ -27,7 +27,7 @@ bool MoveValidator::IsKingInCheck(const std::vector<Piece> &pieces, const Vector
     return false; // King is not in check
 }
 
-bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board)
+bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board, bool forHighlightOnly)
 {
 
     bool isValid = false;
@@ -38,7 +38,10 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
     case PAWN:
         if (PieceMovement::IsEnPassantValid(piece, newPosition, pieces, originalPosition))
         {
-            board.ExecuteEnPassant(const_cast<Piece &>(piece), const_cast<std::vector<Piece> &>(pieces), originalPosition, newPosition);
+            // Only execute en passant when not just checking for highlighting
+            if (!forHighlightOnly) {
+                board.ExecuteEnPassant(const_cast<Piece &>(piece), const_cast<std::vector<Piece> &>(pieces), originalPosition, newPosition);
+            }
             isValid = true;
         }
         else
@@ -63,14 +66,20 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
         {
             if (MoveSimulation::CheckKingAfterMove(piece, newPosition, pieces, originalPosition, board))
             {
-                piece.hasMoved = true;
+                // Only set hasMoved when actually executing the move
+                if (!forHighlightOnly) {
+                    piece.hasMoved = true;
+                }
                 isValid = true;
             }
         }
         if (PieceMovement::IsCastlingValid(piece, newPosition, pieces, originalPosition, board))
         {
-            bool kingside = newPosition.x > originalPosition.x;
-            Board::ExecuteCastling(const_cast<Piece &>(piece), kingside, const_cast<std::vector<Piece> &>(pieces), originalPosition);
+            // Only execute castling when actually making the move, not for highlighting
+            if (!forHighlightOnly) {
+                bool kingside = newPosition.x > originalPosition.x;
+                Board::ExecuteCastling(const_cast<Piece &>(piece), kingside, const_cast<std::vector<Piece> &>(pieces), originalPosition);
+            }
             isValid = true;
         }
         break;
@@ -111,7 +120,8 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
         }
     }
 
-    if (isValid)
+    // Only update lastMove when actually executing a move, not when checking for highlighting
+    if (isValid && !forHighlightOnly)
     {
         MoveSimulation::lastMove = std::make_tuple(piece, originalPosition, newPosition); // Storing the move
         std::cout << "Move is valid." << std::endl;

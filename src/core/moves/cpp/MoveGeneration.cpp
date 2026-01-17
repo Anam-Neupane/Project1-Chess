@@ -43,15 +43,10 @@ std::vector<Vector2> GetAllPossibleMoves(Piece& piece, std::vector<Piece>& piece
             break;
     }
 
-    std::cout << "Generated moves for piece of type " << piece.type << " at position (" 
-              << piece.position.x << "," << piece.position.y << "):" << std::endl;
-    for (const Vector2& move : generatedMoves) {
-        std::cout << "    Potential move to (" << move.x << "," << move.y << ")" << std::endl;
-    }
 
-    // Validating each generated move
+    // Validating each generated move (for highlighting only - no side effects)
     for (Vector2& potentialMove : generatedMoves) {
-        if (MoveValidator::IsMoveValid(piece, potentialMove, pieces, piece.position, board)) {
+        if (MoveValidator::IsMoveValid(piece, potentialMove, pieces, piece.position, board, true)) {
             std::cout << "    Valid move to (" << potentialMove.x << "," << potentialMove.y << ")" << std::endl;
             moves.push_back(potentialMove);
         } else {
@@ -62,26 +57,27 @@ std::vector<Vector2> GetAllPossibleMoves(Piece& piece, std::vector<Piece>& piece
     return moves;
 }
 
+    std::vector<Vector2> GetPawnMoves(const Piece &piece, const std::vector<Piece> &pieces, const Board &board)
+    {
+        std::vector<Vector2> moves;
 
-std::vector<Vector2> GetPawnMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
-    std::vector<Vector2> moves;
-    
-    // Generating potential moves (one step forward, two steps forward, and captures)
-    Vector2 potentialMoves[] = {
-        {piece.position.x, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)},
-        {piece.position.x, piece.position.y + 2 * squareSize * ((piece.color == 0) ? 1 : -1)},
-        {piece.position.x + squareSize, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)},
-        {piece.position.x - squareSize, piece.position.y + squareSize * ((piece.color == 0) ? 1 : -1)}
-    };
+        int direction = (piece.color == 0) ? 1 : -1;
 
-    for (const auto& newPosition : potentialMoves) {
-        if (PieceMovement::IsPawnMoveValid(piece, newPosition, pieces, piece.position)) {
-            moves.push_back(newPosition);
-        }
+        // Generating potential moves (one step forward, two steps forward, and diagonal captures including en passant)
+        // These will all be validated by IsMoveValid which checks both IsPawnMoveValid AND IsEnPassantValid
+        
+        // Forward move
+        moves.push_back({piece.position.x, piece.position.y + squareSize * direction});
+        
+        // Double move from starting position
+        moves.push_back({piece.position.x, piece.position.y + 2 * squareSize * direction});
+        
+        // Diagonal captures (also covers en passant positions)
+        moves.push_back({piece.position.x + squareSize, piece.position.y + squareSize * direction});
+        moves.push_back({piece.position.x - squareSize, piece.position.y + squareSize * direction});
+
+        return moves;
     }
-
-    return moves;
-}
 
 std::vector<Vector2> GetRookMoves(const Piece& piece, const std::vector<Piece>& pieces, const Board& board) {
     std::vector<Vector2> moves;
@@ -91,22 +87,31 @@ std::vector<Vector2> GetRookMoves(const Piece& piece, const std::vector<Piece>& 
         {1, 0}, {-1, 0}, {0, 1}, {0, -1}
     };
 
-    for (const auto& direction : directions) {
-        Vector2 newPosition = piece.position;
-        while (true) {
-            newPosition.x += direction.x * squareSize;
-            newPosition.y += direction.y * squareSize;
-            if (PieceMovement::IsRookMoveValid(piece, newPosition, pieces, piece.position)) {
-                moves.push_back(newPosition);
-                // Stop if a piece is captured
-                if (std::any_of(pieces.begin(), pieces.end(), [&](const Piece& p) { return Vector2Equals(p.position, newPosition); })) {
+        for (const auto &direction : directions)
+        {
+            Vector2 newPosition = piece.position;
+            while (true)
+            {
+                newPosition.x += direction.x * squareSize;
+                newPosition.y += direction.y * squareSize;
+                // Snap to grid to avoid floating-point drift
+                newPosition = MoveUtils::SnapToGrid(newPosition, boardPosition, squareSize);
+                if (PieceMovement::IsRookMoveValid(piece, newPosition, pieces, piece.position))
+                {
+                    moves.push_back(newPosition);
+                    // Stop if a piece is captured
+                    if (std::any_of(pieces.begin(), pieces.end(), [&](const Piece &p)
+                                    { return !p.captured && Vector2Equals(p.position, newPosition); }))
+                    {
+                        break;
+                    }
+                }
+                else
+                {
                     break;
                 }
-            } else {
-                break;
             }
         }
-    }
 
     return moves;
 }
@@ -119,27 +124,31 @@ std::vector<Vector2> GetBishopMoves(const Piece& piece, const std::vector<Piece>
         {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
     };
 
-    // Iterating through each diagonal direction
-    for (const auto& direction : directions) {
-        Vector2 newPosition = piece.position;
-        while (true) {
-            
-            // Moving to the next diagonal position
-            newPosition.x += direction.x * squareSize;
-            newPosition.y += direction.y * squareSize;
+        // Iterating through each diagonal direction
+        for (const auto &direction : directions)
+        {
+            Vector2 newPosition = piece.position;
+            while (true)
+            {
 
-            // Converting pixel position to board coordinates
-            int newX = MoveUtils::PixelToBoard(newPosition.x, boardPosition.x, squareSize);
-            int newY = MoveUtils::PixelToBoard(newPosition.y, boardPosition.y, squareSize);
+                // Moving to the next diagonal position
+                newPosition.x += direction.x * squareSize;
+                newPosition.y += direction.y * squareSize;
+                // Snap to grid to avoid floating-point drift
+                newPosition = MoveUtils::SnapToGrid(newPosition, boardPosition, squareSize);
 
-            if (!MoveUtils::IsInBounds(newX, newY)) {
-                break;
-            }
+                // Converting pixel position to board coordinates
+                int newX = MoveUtils::PixelToBoard(newPosition.x, boardPosition.x, squareSize);
+                int newY = MoveUtils::PixelToBoard(newPosition.y, boardPosition.y, squareSize);
 
-            // Checking if there's any piece at the new position
-            auto it = std::find_if(pieces.begin(), pieces.end(), [&](const Piece& p) {
-                return Vector2Equals(p.position, newPosition);
-            });
+                if (!MoveUtils::IsInBounds(newX, newY))
+                {
+                    break;
+                }
+
+                // Checking if there's any piece at the new position
+                auto it = std::find_if(pieces.begin(), pieces.end(), [&](const Piece &p)
+                                       { return !p.captured && Vector2Equals(p.position, newPosition); });
 
             // If a piece is found
             if (it != pieces.end()) {
@@ -203,25 +212,36 @@ std::vector<Vector2> GetKingMoves(Piece& piece, const std::vector<Piece>& pieces
     
     std::vector<Vector2> moves;
 
-    // Generating potential king moves (one square in any direction)
-    Vector2 potentialMoves[] = {
-        {piece.position.x + squareSize, piece.position.y},        // Right
-        {piece.position.x - squareSize, piece.position.y},        // Left
-        {piece.position.x, piece.position.y + squareSize},        // Down
-        {piece.position.x, piece.position.y - squareSize},        // Up
-        {piece.position.x + squareSize, piece.position.y + squareSize},  // Down-right
-        {piece.position.x - squareSize, piece.position.y + squareSize},  // Down-left
-        {piece.position.x + squareSize, piece.position.y - squareSize},  // Up-right
-        {piece.position.x - squareSize, piece.position.y - squareSize}   // Up-left
-    };
-    
-  for (const auto& newPosition : potentialMoves) {
+        // Generating potential king moves (one square in any direction)
+        Vector2 potentialMoves[] = {
+            {piece.position.x + squareSize, piece.position.y},              // Right
+            {piece.position.x - squareSize, piece.position.y},              // Left
+            {piece.position.x, piece.position.y + squareSize},              // Down
+            {piece.position.x, piece.position.y - squareSize},              // Up
+            {piece.position.x + squareSize, piece.position.y + squareSize}, // Down-right
+            {piece.position.x - squareSize, piece.position.y + squareSize}, // Down-left
+            {piece.position.x + squareSize, piece.position.y - squareSize}, // Up-right
+            {piece.position.x - squareSize, piece.position.y - squareSize}  // Up-left
+        };
 
-        if (PieceMovement::IsKingMoveValid(piece, newPosition, pieces, piece.position)) {
-            moves.push_back(newPosition);
+        for (const auto &newPosition : potentialMoves)
+        {
+            if (PieceMovement::IsKingMoveValid(piece, newPosition, pieces, piece.position))
+            {
+                moves.push_back(newPosition);
+            }
         }
+
+        // Add castling moves (king moves 2 squares horizontally)
+        // Kingside castling (move right 2 squares)
+        Vector2 kingsideCastle = {piece.position.x + 2 * squareSize, piece.position.y};
+        moves.push_back(kingsideCastle);
+
+        // Queenside castling (move left 2 squares)
+        Vector2 queensideCastle = {piece.position.x - 2 * squareSize, piece.position.y};
+        moves.push_back(queensideCastle);
+
+        return moves;
     }
-    return moves;
-}
 
 }

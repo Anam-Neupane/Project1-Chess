@@ -1,5 +1,7 @@
 #include "Board.hpp"
 #include "moves/hpp/MoveValidator.hpp"
+#include "moves/hpp/MoveGeneration.hpp"
+#include "moves/hpp/MoveSimulation.hpp"
 #include <raymath.h>
 #include <iostream>
 #include <string>
@@ -30,10 +32,14 @@ int Board::GetPieceValue(int pieceType)
 Board::Board(GameState *state) : gameState(state), dragging(false), draggedPieceIndex(-1),
                                  whiteScorePosition({boardPosition.x + 5, boardPosition.y + squareSize * 8 + 10}), // Initialization of the Score Position
                                  blackScorePosition({boardPosition.x + 5, boardPosition.y - 25}),
+
                                  // Initialization of Player's Turn Position
                                  playerturnPosition({boardPosition.x + squareSize * 8 + 93, boardPosition.y + squareSize * 4 - 29}),
+                                 showValidMoves(true),            // Default on
+                                 selectedPiecePosition({-1, -1}), // No piece selected
                                  blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
                                  whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
+
 {
 }
 
@@ -226,6 +232,134 @@ void Board::DrawLastMoveHightlight()
         hightlightColor);
 }
 
+// For Piece Move Highlight
+void Board::ToggleShowValidMoves()
+{
+    showValidMoves = !showValidMoves;
+    if (!showValidMoves)
+    {
+        // Clear highlights when toggled off
+        currentValidMoves.clear();
+        selectedPiecePosition = {-1, -1};
+    }
+}
+
+void Board::ClearSelection()
+{
+    currentValidMoves.clear();
+    hasPieceSelected = false;
+    selectedPiecePosition = {-1, -1};
+}
+
+void Board::DrawValidMoveHighlights()
+{
+
+    // Only draw if feature is enabled and we have valid moves to show
+    if (!showValidMoves || currentValidMoves.empty())
+    {
+        return;
+    }
+
+    // Define highlight colors
+    Color moveColor = {111, 45, 189, 100}; // Semi-transparent {sortof} blue for moves
+    Color captureColor = {255, 0, 0, 100}; // Semi-transparent red for captures
+    Color Blackcolor = {0, 0, 0, 100};
+
+    // Get current player's color to identify enemy pieces
+    int currentPlayerColor = gameState->getCurrentPlayer();
+
+    for (const Vector2 &move : currentValidMoves)
+    {
+
+        // Transform for flipped board
+        Vector2 drawPos = TransformPosition(move);
+
+        // Check if this move would be a capture (enemy piece at target position)
+        bool isCapture = false;
+        for (const auto &piece : pieces)
+        {
+            // Use tolerance-based comparison for floating-point positions
+            // Only count as capture if it's an ENEMY piece (different color)
+            if (!piece.captured &&
+                piece.color != currentPlayerColor &&
+                std::abs(piece.position.x - move.x) < 1.0f &&
+                std::abs(piece.position.y - move.y) < 1.0f)
+            {
+                isCapture = true;
+                break;
+            }
+        }
+
+        // Check for en passant capture (enemy pawn is beside the move, not at the move position)
+        if (!isCapture)
+        {
+            // Get the last move info to check for en passant
+            const Piece &lastMovePiece = std::get<0>(MoveSimulation::lastMove);
+            const Vector2 &lastOriginalPosition = std::get<1>(MoveSimulation::lastMove);
+            const Vector2 &lastNewPosition = std::get<2>(MoveSimulation::lastMove);
+            
+            // If last move was an opponent's pawn
+            if (lastMovePiece.type == PAWN && lastMovePiece.color != currentPlayerColor)
+            {
+                // Check if it was a double pawn move (2 squares)
+                int lastMoveStartY = static_cast<int>((lastOriginalPosition.y - boardPosition.y) / squareSize);
+                int lastMoveEndY = static_cast<int>((lastNewPosition.y - boardPosition.y) / squareSize);
+                
+                if (std::abs(lastMoveEndY - lastMoveStartY) == 2)
+                {
+                    // Check if the move target is the en passant capture square
+                    int moveX = static_cast<int>((move.x - boardPosition.x) / squareSize);
+                    int moveY = static_cast<int>((move.y - boardPosition.y) / squareSize);
+                    int lastPawnX = static_cast<int>((lastNewPosition.x - boardPosition.x) / squareSize);
+                    
+                    // En passant capture square is behind where opponent's pawn landed
+                    // Use same formula as IsEnPassantValid: enPassantY = lastMoveStartY - direction
+                    int direction = (currentPlayerColor == 0) ? 1 : -1;
+                    int enPassantY = lastMoveStartY - direction;
+                    
+                    if (moveX == lastPawnX && moveY == enPassantY)
+                    {
+                        isCapture = true;
+                    }
+                }
+            }
+        }
+
+        if (isCapture)
+        {
+
+            // Draw capture indicator (filled square with border)
+            DrawRectangle(
+                static_cast<int>(drawPos.x),
+                static_cast<int>(drawPos.y + 3.4),
+                static_cast<int>(squareSize),
+                static_cast<int>(squareSize),
+                captureColor);
+        }
+        else
+        {
+
+            // Draw move indicator (circle in center of square)
+            float centerX = drawPos.x + squareSize / 2;
+            float centerY = drawPos.y + 3.4 + squareSize / 2;
+            float radius = squareSize / 6; // Small circle
+
+            DrawCircle(
+                static_cast<int>(centerX),
+                static_cast<int>(centerY),
+                radius,
+                Blackcolor);
+
+            DrawRectangle(
+                static_cast<int>(drawPos.x),
+                static_cast<int>(drawPos.y + 3.4),
+                static_cast<int>(squareSize),
+                static_cast<int>(squareSize),
+                moveColor);
+        }
+    }
+}
+
 void Board::DrawPromotionMenu(Vector2 position, int color)
 {
     // Drawing promotion menu background and border
@@ -361,7 +495,7 @@ void Board::ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &piec
     }
 
     // Move the king
-    Vector2 newKingPos = {boardPosition.x + (kingside ? 6 : 2) * squareSize, king.position.y + boardPosition.y};
+    Vector2 newKingPos = {boardPosition.x + (kingside ? 6 : 2) * squareSize, originalPosition.y};
     king.position.x = newKingPos.x;
     king.position.y = newKingPos.y;
 
@@ -395,7 +529,10 @@ void Board::ExecuteEnPassant(Piece &capturingPawn, std::vector<Piece> &pieces, c
 
         std::cout << "Checking piece at index " << i << " with position (" << pieces[i].position.x << ", " << pieces[i].position.y << ")" << std::endl;
 
-        if (pieces[i].position.x == capturedPawnX && pieces[i].position.y == capturedPawnY && pieces[i].type == PAWN && pieces[i].color != capturingPawn.color)
+        // Use tolerance-based comparison for floating-point positions
+        if (std::abs(pieces[i].position.x - capturedPawnX) < 1.0f && 
+            std::abs(pieces[i].position.y - capturedPawnY) < 1.0f && 
+            pieces[i].type == PAWN && pieces[i].color != capturingPawn.color)
         {
             std::cout << "Capturing Pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
             this->CapturePiece(i);
@@ -443,6 +580,25 @@ void Board::UpdateDragging()
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
                 originalPosition = pieces[i].position;
+
+                // Generate valid moves for highlighting
+                if (showValidMoves && pieces[i].color == gameState->getCurrentPlayer())
+                {
+
+                    // Skip regeneration if same piece is already selected
+                    if (!hasPieceSelected || !Vector2Equals(selectedPiecePosition, pieces[i].position))
+                    {
+
+                        // New piece selected - generate moves
+                        selectedPiecePosition = pieces[i].position;
+                        hasPieceSelected = true;
+                        currentValidMoves = MoveGeneration::GetAllPossibleMoves(pieces[i], pieces, *this);
+                    }
+                }
+                else
+                {
+                    ClearSelection();
+                }
 
                 // Moving the dragged piece to the back of the vector so it is drawn last
                 Piece draggedPiece = pieces[i];
@@ -495,15 +651,16 @@ void Board::UpdateDragging()
                             tempKingPosition = (pieces[draggedPieceIndex].color == 0) ? blackKingPosition : whiteKingPosition;
                         }
 
-                        if (pieces[draggedPieceIndex].type == ROOK)
-                        {
-                            pieces[draggedPieceIndex].hasMoved = true;
-                        }
-
                         // Checking if the move is valid
                         if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this))
                         {
                             pieces[draggedPieceIndex].position = newPosition;
+
+                            // Mark rook as moved AFTER successful move
+                            if (pieces[draggedPieceIndex].type == ROOK)
+                            {
+                                pieces[draggedPieceIndex].hasMoved = true;
+                            }
 
                             if (pieces[draggedPieceIndex].type == KING)
                             {
@@ -578,11 +735,15 @@ void Board::UpdateDragging()
 
                                 // Switch player and flip board (handled by GameState)
                                 gameState->switchPlayer();
+
+                                ClearSelection(); // Clear the move highlight after move is made
                             }
                         }
                         else
                         {
                             pieces[draggedPieceIndex].position = originalPosition;
+
+                            ClearSelection(); // Clear the move highlight even if move is not made
 
                             // Reverting king's position if the move was invalid
                             if (pieces[draggedPieceIndex].type == KING)
@@ -631,6 +792,10 @@ void Board::Reset()
 
     // Reset GameState (scores, current player, board flip)
     gameState->reset();
+
+    // Clear move highlights
+    currentValidMoves.clear();
+    selectedPiecePosition = {-1, -1};
 
     LoadPieces();
 }

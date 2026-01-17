@@ -65,6 +65,11 @@ private:
     // For showing Player's Turn
     Vector2 playerturnPosition;
 
+    bool showValidMoves;                        // Toggle state
+    std::vector<Vector2> currentValidMoves;     // Stores valid moves for 
+    Vector2 selectedPiecePosition;                  // Position of piece
+    bool hasPieceSelected;                      // Is piece selected? for valid selection
+
 public:
     bool PawnPromo = false;
     bool Checkmate = false;
@@ -93,6 +98,10 @@ public:
     static void ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &pieces, const Vector2 originalPosition);
     void DrawPromotionMenu(Vector2 position, int color);
     void HandlePawnPromotion(int color, Vector2 position);
+
+    void ToggleShowValidMoves();    // Toggle the highlight features
+    void DrawValidMoveHighlights(); // Draw the valid move indicators
+    void ClearSelection();          // Clear selected piece and valid moves
 };
 
 #endif // BOARD_H

@@ -12,7 +12,8 @@ class MoveValidator {
     public:
 
     static bool IsMoveValid(Piece &piece, Vector2 &newPosition, 
-                           std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board); 
+                           std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board, 
+                           bool forHighlightOnly = false); 
     static bool IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board &board);
     static bool IsKingInCheck(const std::vector<Piece> &pieces,
                             const Vector2 &kingPosition, int kingColor, const Board &board);
