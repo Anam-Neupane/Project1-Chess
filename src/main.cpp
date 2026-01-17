@@ -69,7 +69,7 @@ int main()
 
     bool exit = false;
 
-    Texture2D boardTexture = LoadTexture("resource/board0.png");
+    Texture2D boardTexture = LoadTexture("resource/board1.png");
 
     // Create GameState object and pass to Board
     GameState chessGameState;
@@ -278,12 +278,12 @@ int main()
 
                 else
                 {
+                    DrawTexture(boardTexture, 0, 55, WHITE); // Drawing the Board
 
-                    DrawTexture(boardTexture, 0, 55, WHITE);
-                    // Side panel - fits within the extended screen width
+                    B1.DrawLastMoveHightlight();
+
+                    // Side panel
                     DrawRectangle(914, 55, sidePanelWidth + 180, 910, BROWN);
-                    //  DrawRectangle(1100,55,700,455,DARKBROWN);
-                    //  DrawRectangle(1100,510,700,455,BEIGE);
 
                     B1.UpdateDragging();
                     B1.DrawPlayer();

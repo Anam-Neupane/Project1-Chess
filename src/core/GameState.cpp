@@ -9,7 +9,9 @@ GameState::GameState()
     , blackScore(0)
     , whiteCapturedCount(0)
     , blackCapturedCount(0)
-
+    , lastMoveFrom({0, 0})
+    , lastMoveTo({0, 0})
+    , hasLastMove(false)
 {}
 
 void GameState::setGameMode(GameMode mode) {
@@ -19,6 +21,11 @@ void GameState::setGameMode(GameMode mode) {
 
 void GameState::setPhase(GamePhase newPhase) {
     phase = newPhase;
+}
+void GameState::setLastMove(Vector2 from, Vector2 to ) {
+    lastMoveFrom = from;
+    lastMoveTo = to;
+    hasLastMove = true;
 }
 
 void GameState::switchPlayer() {
@@ -50,6 +57,9 @@ void GameState::reset() {
     blackScore = 0;
     whiteCapturedCount = 0;
     blackCapturedCount = 0;
+    hasLastMove = false;
+    lastMoveFrom = {0, 0};
+    lastMoveTo = {0, 0};
 }
 
 

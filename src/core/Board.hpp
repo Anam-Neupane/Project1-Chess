@@ -83,6 +83,7 @@ public:
     void LoadPieces();
     void LoadPromotionTexture();
     void DrawPieces();
+    void DrawLastMoveHightlight(); // For highlight of last move
     void UnloadPieces();
     void UpdateDragging();
     void CapturePiece(int capturedPieceIndex);

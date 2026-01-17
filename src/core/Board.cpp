@@ -4,30 +4,36 @@
 #include <iostream>
 #include <string>
 
-//For Global variable
+// For Global variable
 float squareSize = 112.6;
 Vector2 boardPosition = {0, 55};
 
 int Board::GetPieceValue(int pieceType)
 {
-    switch(pieceType)
+    switch (pieceType)
     {
-        case PAWN: return 1;
-        case KNIGHT: return 3;
-        case BISHOP: return 3;
-        case ROOK: return 5;
-        case QUEEN: return 9;
-        default: return 0;
+    case PAWN:
+        return 1;
+    case KNIGHT:
+        return 3;
+    case BISHOP:
+        return 3;
+    case ROOK:
+        return 5;
+    case QUEEN:
+        return 9;
+    default:
+        return 0;
     }
 }
-//Constructor
-Board::Board(GameState* state) : gameState(state), dragging(false), draggedPieceIndex(-1),
-                 whiteScorePosition({boardPosition.x + 5, boardPosition.y + squareSize * 8 + 10}), // Initialization of the Score Position
-                 blackScorePosition({boardPosition.x + 5, boardPosition.y - 25}),
-                 // Initialization of Player's Turn Position
-                 playerturnPosition({boardPosition.x + squareSize * 8 + 93, boardPosition.y + squareSize * 4 - 29}),
-                 blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
-                 whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
+// Constructor
+Board::Board(GameState *state) : gameState(state), dragging(false), draggedPieceIndex(-1),
+                                 whiteScorePosition({boardPosition.x + 5, boardPosition.y + squareSize * 8 + 10}), // Initialization of the Score Position
+                                 blackScorePosition({boardPosition.x + 5, boardPosition.y - 25}),
+                                 // Initialization of Player's Turn Position
+                                 playerturnPosition({boardPosition.x + squareSize * 8 + 93, boardPosition.y + squareSize * 4 - 29}),
+                                 blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
+                                 whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
 {
 }
 
@@ -37,17 +43,19 @@ void Board::DrawScores()
     std::string blackScoreText = "Black : " + std::to_string(gameState->getBlackScore());
 
     // Swap score positions when board is flipped
-    if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped()) {
+    if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped())
+    {
         // White score at top, Black score at bottom (flipped)
         DrawText(whiteScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
         DrawText(blackScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
-    } else {
+    }
+    else
+    {
         // Normal: White at bottom, Black at top
         DrawText(whiteScoreText.c_str(), whiteScorePosition.x, whiteScorePosition.y, 30, WHITE);
         DrawText(blackScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
     }
 }
-
 
 void Board::DrawPlayer()
 {
@@ -64,21 +72,21 @@ void Board::DrawPlayer()
     }
 }
 
-Board::~Board(){
+Board::~Board()
+{
     UnloadPieces();
 }
-
 
 void Board::LoadPieces()
 {
 
     Image piecesImage = LoadImage("resource/figure1.png");
 
-    if (piecesImage.data == nullptr) { //For checking if the file is loaded correctly.
-    std::cout << "Failed to load image: resource/figure1.png" << std::endl;
-    return;
-}
-
+    if (piecesImage.data == nullptr)
+    { // For checking if the file is loaded correctly.
+        std::cout << "Failed to load image: resource/figure1.png" << std::endl;
+        return;
+    }
 
     // Figure1.png contains two rows of pieces: one for black and one for white
     pieceWidth = piecesImage.width / pieceTypes;
@@ -86,21 +94,21 @@ void Board::LoadPieces()
 
     Texture2D pieceTextures[pieceTypes * pieceColors];
 
-    for (int y = 0; y < pieceColors; y++) {
-        for (int x = 0; x < pieceTypes; x++) {
+    for (int y = 0; y < pieceColors; y++)
+    {
+        for (int x = 0; x < pieceTypes; x++)
+        {
 
-            Image pieceImage = ImageFromImage(piecesImage, Rectangle{static_cast<float>(x*pieceWidth),
-             static_cast<float>(y*pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
+            Image pieceImage = ImageFromImage(piecesImage, Rectangle{static_cast<float>(x * pieceWidth),
+                                                                     static_cast<float>(y * pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
 
-
-            //For resizing the pieces cuz it's too biggggg....
-                int newWidth = static_cast<int>(pieceWidth * 0.38);
-                int newHeight = static_cast<int>(pieceHeight* 0.38);
-                ImageResize(&pieceImage, newWidth, newHeight);
-
+            // For resizing the pieces cuz it's too biggggg....
+            int newWidth = static_cast<int>(pieceWidth * 0.38);
+            int newHeight = static_cast<int>(pieceHeight * 0.38);
+            ImageResize(&pieceImage, newWidth, newHeight);
 
             pieceTextures[y * pieceTypes + x] = LoadTextureFromImage(pieceImage);
-            
+
             UnloadImage(pieceImage);
         }
     }
@@ -108,16 +116,19 @@ void Board::LoadPieces()
     UnloadImage(piecesImage);
 
     // Initialization of pieces according to the board
-    for (int y = 0; y < boardSize; y++) {
-        for (int x = 0; x < boardSize; x++) {
+    for (int y = 0; y < boardSize; y++)
+    {
+        for (int x = 0; x < boardSize; x++)
+        {
             int pieceType = initialBoard[y][x];
-            if (pieceType != 0) {
+            if (pieceType != 0)
+            {
 
                 int type = abs(pieceType);
                 int color = (pieceType > 0) ? 0 : 1;
                 Vector2 position = {((x * squareSize) + boardPosition.x), ((y * squareSize) + boardPosition.y)};
-                Texture2D texture = pieceTextures[color * pieceTypes + (type-1)];
-                pieces.emplace_back(type, color, position,texture);
+                Texture2D texture = pieceTextures[color * pieceTypes + (type - 1)];
+                pieces.emplace_back(type, color, position, texture);
             }
         }
     }
@@ -127,37 +138,36 @@ void Board::LoadPromotionTexture()
 {
     Image piecesImage = LoadImage("resource/figure1.png");
 
-    if (piecesImage.data == nullptr) {
-    //For checking if the file is loaded correctly.
-    std::cout << "Failed to load image: resource/figure1.png" << std::endl;
-    return;
-}
-
+    if (piecesImage.data == nullptr)
+    {
+        // For checking if the file is loaded correctly.
+        std::cout << "Failed to load image: resource/figure1.png" << std::endl;
+        return;
+    }
 
     // Figure1.png contains two rows of pieces: one for black and one for white
-     pieceWidth = piecesImage.width / pieceTypes;
-     pieceHeight = piecesImage.height / pieceColors;
+    pieceWidth = piecesImage.width / pieceTypes;
+    pieceHeight = piecesImage.height / pieceColors;
 
-    for (int y = 0; y < pieceColors; y++) {
-        for (int x = 0; x < pieceTypes; x++) {
+    for (int y = 0; y < pieceColors; y++)
+    {
+        for (int x = 0; x < pieceTypes; x++)
+        {
 
             Image pieceImage = ImageFromImage(piecesImage, Rectangle{static_cast<float>(x * pieceWidth),
                                                                      static_cast<float>(y * pieceHeight), static_cast<float>(pieceWidth), static_cast<float>(pieceHeight)});
 
-
-            //For resizing the pieces cuz it's too biggggg....
-                int newWidth = static_cast<int>(pieceWidth * 0.38);
-                int newHeight = static_cast<int>(pieceHeight* 0.38);
-                ImageResize(&pieceImage, newWidth, newHeight);
-
+            // For resizing the pieces cuz it's too biggggg....
+            int newWidth = static_cast<int>(pieceWidth * 0.38);
+            int newHeight = static_cast<int>(pieceHeight * 0.38);
+            ImageResize(&pieceImage, newWidth, newHeight);
 
             promotionTexture[y * pieceTypes + x] = LoadTextureFromImage(pieceImage);
-            
+
             UnloadImage(pieceImage);
         }
     }
     UnloadImage(piecesImage);
-
 }
 
 void Board::DrawPieces()
@@ -178,6 +188,42 @@ void Board::DrawPieces()
             DrawTexture(piece.texture, drawPos.x, drawPos.y, WHITE);
         }
     }
+}
+
+void Board::DrawLastMoveHightlight()
+{
+
+    // Only draw if a move has been made
+    if (!gameState->getHasLastMove())
+    {
+        return;
+    }
+
+    // Highlight color Jade greeen
+    Color hightlightColor = {46, 175, 60, 80}; // Jade greeen with 80% alpha
+
+    // Get the last move positions
+    Vector2 fromPos = gameState->getLastMoveFrom();
+    Vector2 toPos = gameState->getLastMoveTo();
+
+    // Transform Positions if board is flipped for 1v1 mode
+    Vector2 drawFromPos = TransformPosition(fromPos);
+    Vector2 drawToPos = TransformPosition(toPos);
+
+    // Highlight rectangles on source and destination squares
+    DrawRectangle(
+        static_cast<int>(drawFromPos.x),
+        static_cast<int>(drawFromPos.y + 3.4),
+        static_cast<int>(squareSize),
+        static_cast<int>(squareSize),
+        hightlightColor);
+
+    DrawRectangle(
+        static_cast<int>(drawToPos.x),
+        static_cast<int>(drawToPos.y + 3.4),
+        static_cast<int>(squareSize),
+        static_cast<int>(squareSize),
+        hightlightColor);
 }
 
 void Board::DrawPromotionMenu(Vector2 position, int color)
@@ -291,59 +337,66 @@ void Board::ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &piec
     {
         if (piece.type == ROOK && piece.color == king.color &&
             static_cast<int>((piece.position.x - boardPosition.x) / squareSize) == rookX &&
-            static_cast<int>((piece.position.y - boardPosition.y) / squareSize) == rookY) {
+            static_cast<int>((piece.position.y - boardPosition.y) / squareSize) == rookY)
+        {
             rook = &piece;
             break;
         }
     }
-    std::cout<<"King position = "<<king.position.y<<std::endl;
+    std::cout << "King position = " << king.position.y << std::endl;
 
     // Debugging log to track the state of the king and rook
-    if (!rook) {
+    if (!rook)
+    {
         std::cout << "Rook not found for castling! RookX: " << rookX << ", RookY: " << rookY << std::endl;
         return; // Rook not found
     }
-     std::cout << "Rook found at (" << rook->position.x << ", " << rook->position.y << ")" << std::endl;
+    std::cout << "Rook found at (" << rook->position.x << ", " << rook->position.y << ")" << std::endl;
 
-         // Checking if king or rook has moved
-    if (king.hasMoved || rook->hasMoved) {
+    // Checking if king or rook has moved
+    if (king.hasMoved || rook->hasMoved)
+    {
         std::cout << "Castling not allowed, king or rook has moved." << std::endl;
         return; // Either the king or rook has moved
     }
 
     // Move the king
-    Vector2 newKingPos = { boardPosition.x + (kingside ? 6 : 2) * squareSize, king.position.y + boardPosition.y};
+    Vector2 newKingPos = {boardPosition.x + (kingside ? 6 : 2) * squareSize, king.position.y + boardPosition.y};
     king.position.x = newKingPos.x;
     king.position.y = newKingPos.y;
 
     // Move the rook
-    Vector2 newRookPos = { boardPosition.x + (kingside ? 5 : 3) * squareSize, rook->position.y};
+    Vector2 newRookPos = {boardPosition.x + (kingside ? 5 : 3) * squareSize, rook->position.y};
     rook->position.x = newRookPos.x;
     rook->position.y = newRookPos.y;
-    
+
     // Mark king and rook as moved
     king.hasMoved = true;
     rook->hasMoved = true;
     // Log the positions for debugging
     std::cout << "Castling performed: King moved to (" << newKingPos.x << ", " << newKingPos.y << "), Rook moved to ("
-    << newRookPos.x << ", " << newRookPos.y << ")\n";
+              << newRookPos.x << ", " << newRookPos.y << ")\n";
 }
 
-void Board::ExecuteEnPassant(Piece& capturingPawn, std::vector<Piece>& pieces, const Vector2& originalPosition, const Vector2& newPosition) {
+void Board::ExecuteEnPassant(Piece &capturingPawn, std::vector<Piece> &pieces, const Vector2 &originalPosition, const Vector2 &newPosition)
+{
 
     float capturedPawnX = newPosition.x;
     float capturedPawnY = originalPosition.y; // The captured pawn is directly behind the capturing pawn
 
     std::cout << "Attempting to capture pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
 
-    for (const auto &piece : pieces) {
-            std::cout << "Piece Type: " << piece.type << ", Position: (" << piece.position.x << ", " << piece.position.y << ")" << std::endl;
-        }
-    for (std::size_t i = 0; i < pieces.size(); ++i) {
-        
+    for (const auto &piece : pieces)
+    {
+        std::cout << "Piece Type: " << piece.type << ", Position: (" << piece.position.x << ", " << piece.position.y << ")" << std::endl;
+    }
+    for (std::size_t i = 0; i < pieces.size(); ++i)
+    {
+
         std::cout << "Checking piece at index " << i << " with position (" << pieces[i].position.x << ", " << pieces[i].position.y << ")" << std::endl;
 
-        if (pieces[i].position.x == capturedPawnX && pieces[i].position.y == capturedPawnY && pieces[i].type == PAWN && pieces[i].color != capturingPawn.color) {
+        if (pieces[i].position.x == capturedPawnX && pieces[i].position.y == capturedPawnY && pieces[i].type == PAWN && pieces[i].color != capturingPawn.color)
+        {
             std::cout << "Capturing Pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
             this->CapturePiece(i);
             break;
@@ -401,42 +454,48 @@ void Board::UpdateDragging()
         }
     }
 
-    if (dragging) {
+    if (dragging)
+    {
         pieces[draggedPieceIndex].position = Vector2Subtract(mousePos, offset);
-        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        {
             dragging = false;
-            
+
             float snappedX = roundf((pieces[draggedPieceIndex].position.x - boardPosition.x) / squareSize) * squareSize + boardPosition.x;
             float snappedY = roundf((pieces[draggedPieceIndex].position.y - boardPosition.y) / squareSize) * squareSize + boardPosition.y;
 
+            bool outOfBounds = (snappedX < boardPosition.x || snappedX >= (boardPosition.x + 8 * squareSize) ||
+                                snappedY < boardPosition.y || snappedY >= (boardPosition.y + 8 * squareSize));
 
-            bool outOfBounds = (snappedX < boardPosition.x || snappedX >= (boardPosition.x + 8* squareSize) ||
-                                 snappedY < boardPosition.y || snappedY >= (boardPosition.y + 8 * squareSize));
-
-            if(outOfBounds){
+            if (outOfBounds)
+            {
                 pieces[draggedPieceIndex].position = originalPosition;
-            }                     
-            else{
+            }
+            else
+            {
                 // Constrain snappedX to the board boundaries(This also works)
                 // if (snappedX < boardPosition.x) snappedX = boardPosition.x;
                 // if (snappedX >= boardPosition.x + 8 * squareSize) snappedX = boardPosition.x + (8 - 1) * squareSize;
-                //This is shorter form 
+                // This is shorter form
                 snappedX = std::max(boardPosition.x, std::min(snappedX, boardPosition.x + 7 * squareSize));
                 snappedY = std::max(boardPosition.y, std::min(snappedY, boardPosition.y + 7 * squareSize));
 
-                Vector2 newPosition = Vector2 {snappedX,snappedY};
+                Vector2 newPosition = Vector2{snappedX, snappedY};
 
-                //Checking the turn of the player(UI improvement)
-                    if (pieces[draggedPieceIndex].color == gameState->getCurrentPlayer()) {
-                    if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y) {
-                        
-                         // Original king position
+                // Checking the turn of the player(UI improvement)
+                if (pieces[draggedPieceIndex].color == gameState->getCurrentPlayer())
+                {
+                    if (originalPosition.x != newPosition.x || originalPosition.y != newPosition.y)
+                    {
+
+                        // Original king position
                         Vector2 tempKingPosition;
-                        if (pieces[draggedPieceIndex].type == KING) {
+                        if (pieces[draggedPieceIndex].type == KING)
+                        {
                             tempKingPosition = (pieces[draggedPieceIndex].color == 0) ? blackKingPosition : whiteKingPosition;
                         }
 
-                        if(pieces[draggedPieceIndex].type==ROOK)
+                        if (pieces[draggedPieceIndex].type == ROOK)
                         {
                             pieces[draggedPieceIndex].hasMoved = true;
                         }
@@ -458,18 +517,21 @@ void Board::UpdateDragging()
                                 }
                             }
 
-                        //For capturing 
-                        // for (std::size_t i = 0; i < pieces.size(); ++i) {
-                        // if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
-                        //         CapturePiece(i);  // Capture the piece
-                        //         break;
-                        //     }
-                        // }
-                        
-                            // For capturing 
-                             bool validCapture = true;
-                            for (std::size_t i = 0; i < pieces.size(); ++i) {
-                                if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
+                            // For capturing
+                            //  for (std::size_t i = 0; i < pieces.size(); ++i) {
+                            //  if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
+                            //          CapturePiece(i);  // Capture the piece
+                            //          break;
+                            //      }
+                            //  }
+
+                            // For capturing
+                            bool validCapture = true;
+                            for (std::size_t i = 0; i < pieces.size(); ++i)
+                            {
+                                if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color)
+                                {
+
                                     Vector2 tempPosition = pieces[draggedPieceIndex].position;
                                     Piece capturedPiece = pieces[i];
                                     pieces.erase(pieces.begin() + i);
@@ -480,9 +542,12 @@ void Board::UpdateDragging()
                                     pieces[draggedPieceIndex].position = tempPosition;
                                     pieces.insert(pieces.begin() + i, capturedPiece);
 
-                                    if (isKingSafe) {
+                                    if (isKingSafe)
+                                    {
                                         this->CapturePiece(i);
-                                    } else {
+                                    }
+                                    else
+                                    {
                                         pieces[draggedPieceIndex].position = originalPosition;
                                         validCapture = false;
                                     }
@@ -490,20 +555,26 @@ void Board::UpdateDragging()
                                 }
                             }
                             // Checkmate detection after a valid move
-                            if(validCapture){
-                            
-                            pieces[draggedPieceIndex].position = newPosition;
-  
-                                if (MoveValidator::IsCheckmate(pieces, gameState->getCurrentPlayer() == 0 ? 1 : 0,*this)) {
+                            if (validCapture)
+                            {
+
+                                pieces[draggedPieceIndex].position = newPosition;
+
+                                if (MoveValidator::IsCheckmate(pieces, gameState->getCurrentPlayer() == 0 ? 1 : 0, *this))
+                                {
                                     std::cout << "Checkmate detected!" << std::endl;
-                                    std::cout<<(gameState->getCurrentPlayer() == 1 ? "White Wins" : "Black Wins")<<std::endl; 
-                                        if(gameState->getCurrentPlayer() == 1)
-                                        {
-                                            Cwhite = true;
-                                        }
+                                    std::cout << (gameState->getCurrentPlayer() == 1 ? "White Wins" : "Black Wins") << std::endl;
+                                    if (gameState->getCurrentPlayer() == 1)
+                                    {
+                                        Cwhite = true;
+                                    }
                                     Checkmate = true;
-                                        return;
+                                    return;
                                 }
+
+                                // Damn I worked Hard in this function
+                                // Store the Last move for highlighting
+                                gameState->setLastMove(originalPosition, newPosition);
 
                                 // Switch player and flip board (handled by GameState)
                                 gameState->switchPlayer();
@@ -541,10 +612,11 @@ void Board::UpdateDragging()
     }
 }
 
-void Board::Reset() {
+void Board::Reset()
+{
     // First unload old pieces texture/ it is inefficient but safe
     UnloadPieces();
-    
+
     pieces.clear(); // Clear the pieces vector
 
     Checkmate = false;
@@ -558,7 +630,7 @@ void Board::Reset() {
     blackKingPosition = {boardPosition.y + 4 * squareSize, boardPosition.y};
 
     // Reset GameState (scores, current player, board flip)
-    gameState -> reset();
+    gameState->reset();
 
     LoadPieces();
 }
