@@ -65,10 +65,14 @@ private:
     // For showing Player's Turn
     Vector2 playerturnPosition;
 
-    bool showValidMoves;                        // Toggle state
-    std::vector<Vector2> currentValidMoves;     // Stores valid moves for 
-    Vector2 selectedPiecePosition;                  // Position of piece
-    bool hasPieceSelected;                      // Is piece selected? for valid selection
+    bool showValidMoves;                    // Toggle state
+    std::vector<Vector2> currentValidMoves; // Stores valid moves for
+    Vector2 selectedPiecePosition;          // Position of piece (ORIGINAL position before drag)
+    bool hasPieceSelected;                  // Is piece selected? for valid selection
+    int selectedPieceType;                  // Type of selected piece (for en passant highlight)
+
+    // Helper function for blur effect
+    void DrawBlurredRectangle(float x, float y,float width, float height, Color baseColor, int blurLayers = 8);
 
 public:
     bool PawnPromo = false;

@@ -9,6 +9,7 @@
 #include <raymath.h>
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 
 namespace PieceMovement
 {
@@ -148,7 +149,6 @@ namespace PieceMovement
         int newX = MoveUtils::PixelToBoard(newPosition.x, boardPosition.x, squareSize);
         int newY = MoveUtils::PixelToBoard(newPosition.y, boardPosition.y, squareSize);
 
-        // std::cout << "Original Pos: (" << currentX << ", " << currentY << "), New Pos: (" << newX << ", " << newY << ")" << std::endl;
 
         int dx = newX - currentX;
         int dy = newY - currentY;
@@ -176,11 +176,11 @@ namespace PieceMovement
         {
             if (!MoveUtils::IsInBounds(x, y))
             {
-                // std::cout << "Intermediate Pos Out of Bounds: (" << x << ", " << y << ")" << std::endl;
+
                 return false; // Position out of bounds, break out early
             }
             Vector2 intermediatePosition = {boardPosition.x + x * squareSize, boardPosition.y + y * squareSize};
-            // std::cout << "Intermediate Pos: (" << x << ", " << y << ")" << std::endl;
+
             for (const auto &otherPiece : pieces)
             {
                 if (!otherPiece.captured && Vector2Equals(otherPiece.position, intermediatePosition))
@@ -319,11 +319,11 @@ namespace PieceMovement
 
     bool IsEnPassantValid(const Piece &piece, const Vector2 &newPosition, const std::vector<Piece> &pieces, const Vector2 &originalPosition)
     {
-
-        int currentX = static_cast<int>((originalPosition.x - boardPosition.x) / squareSize);
-        int currentY = static_cast<int>((originalPosition.y - boardPosition.y) / squareSize);
-        int newX = static_cast<int>((newPosition.x - boardPosition.x) / squareSize);
-        int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
+        // Use std::round to fix floating-point precision errors
+        int currentX = static_cast<int>(std::round((originalPosition.x - boardPosition.x) / squareSize));
+        int currentY = static_cast<int>(std::round((originalPosition.y - boardPosition.y) / squareSize));
+        int newX = static_cast<int>(std::round((newPosition.x - boardPosition.x) / squareSize));
+        int newY = static_cast<int>(std::round((newPosition.y - boardPosition.y) / squareSize));
 
         int dx = newX - currentX;
         int dy = newY - currentY;
@@ -340,22 +340,18 @@ namespace PieceMovement
             if (lastMovePiece.type == PAWN && lastMovePiece.color != piece.color)
             {
 
-                // std::cout<<"I am Inside En Passant"<<std::endl;
-                int lastMoveStartY = static_cast<int>((lastOriginalPosition.y - boardPosition.y) / squareSize);
-                int lastMoveEndY = static_cast<int>((lastNewPosition.y - boardPosition.y) / squareSize);
+                // Use std::round for floating-point precision
+                int lastMoveStartY = static_cast<int>(std::round((lastOriginalPosition.y - boardPosition.y) / squareSize));
+                int lastMoveEndY = static_cast<int>(std::round((lastNewPosition.y - boardPosition.y) / squareSize));
 
                 if (std::abs(lastMoveEndY - lastMoveStartY) == 2)
                 {
 
-                    // std::cout<<"Last Move was a double pawn move"<<std::endl;
                     // Checking if pawn moved beside the current pawn
-                    int enPassantX = static_cast<int>((lastNewPosition.x - boardPosition.x) / squareSize);
-                    int enPassantY = lastMoveStartY - direction; // Where the opponent's pawn landed
-                    // std::cout << "enPassantX: " << enPassantX << " enPassantY: " << enPassantY << std::endl;
-                    // std::cout << "newX: " << newX << " newY: " << newY << std::endl;
+                    int enPassantX = static_cast<int>(std::round((lastNewPosition.x - boardPosition.x) / squareSize));
+                    int enPassantY = lastMoveStartY - direction; // En passant capture square
                     if (enPassantX == newX && enPassantY == newY)
                     {
-                        std::cout << "It is a valid En Passant Move" << std::endl;
                         return true; // Valid en passant move
                     }
                 }
@@ -413,8 +409,7 @@ namespace PieceMovement
             if (MoveValidator::IsKingInCheck(pieces, intermediatePosition, king.color, board))
             {
                 king.position = tempKingPosition; // Restore original position
-                std::cout << "Checking for King in Check:: False" << std::endl;
-                return false; // Castling is not allowed as king would be in check
+                return false;                     // Castling is not allowed as king would be in check
             }
 
             // Restore the king's position
@@ -431,7 +426,6 @@ namespace PieceMovement
 
         if (MoveValidator::IsKingInCheck(pieces, originalPosition, king.color, board))
         {
-            std::cout << "King is in check(No Castle.)" << std::endl;
             return false; // Can't castle while in check.
         }
 
@@ -439,7 +433,6 @@ namespace PieceMovement
         Vector2 finalKingPosition = newPosition;
         if (MoveValidator::IsKingInCheck(pieces, finalKingPosition, king.color, board))
         {
-            std::cout << "Destination check:" << std::endl;
             return false;
         }
 
@@ -449,7 +442,6 @@ namespace PieceMovement
     bool CanPieceAttack(const Piece &piece, const Vector2 &targetPosition, const std::vector<Piece> &pieces)
     {
 
-        //  std::cout << "Checking if piece of type(canpieceAttack) " << piece.type << " at position (" << piece.position.x << ", " << piece.position.y << ") can attack target position (" << targetPosition.x << ", " << targetPosition.y << ")." << std::endl;
         switch (piece.type)
         {
         case PAWN:

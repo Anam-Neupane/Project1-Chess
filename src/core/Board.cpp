@@ -5,6 +5,7 @@
 #include <raymath.h>
 #include <iostream>
 #include <string>
+#include <cmath>
 
 // For Global variable
 float squareSize = 112.6;
@@ -217,14 +218,14 @@ void Board::DrawLastMoveHightlight()
     Vector2 drawToPos = TransformPosition(toPos);
 
     // Highlight rectangles on source and destination squares
-    DrawRectangle(
+    DrawBlurredRectangle(
         static_cast<int>(drawFromPos.x),
         static_cast<int>(drawFromPos.y + 3.4),
         static_cast<int>(squareSize),
         static_cast<int>(squareSize),
         hightlightColor);
 
-    DrawRectangle(
+    DrawBlurredRectangle(
         static_cast<int>(drawToPos.x),
         static_cast<int>(drawToPos.y + 3.4),
         static_cast<int>(squareSize),
@@ -249,6 +250,7 @@ void Board::ClearSelection()
     currentValidMoves.clear();
     hasPieceSelected = false;
     selectedPiecePosition = {-1, -1};
+    selectedPieceType = PAWN; // Reset to default (doesn't matter, hasPieceSelected is false)
 }
 
 void Board::DrawValidMoveHighlights()
@@ -290,38 +292,25 @@ void Board::DrawValidMoveHighlights()
             }
         }
 
-        // Check for en passant capture (enemy pawn is beside the move, not at the move position)
-        if (!isCapture)
+        // Check for en passant capture:
+        // If selected piece is a PAWN and this move is DIAGONAL but no piece at destination,
+        // it MUST be en passant (a pawn can only move diagonally when capturing)
+        if (!isCapture && hasPieceSelected && selectedPieceType == PAWN)
         {
-            // Get the last move info to check for en passant
-            const Piece &lastMovePiece = std::get<0>(MoveSimulation::lastMove);
-            const Vector2 &lastOriginalPosition = std::get<1>(MoveSimulation::lastMove);
-            const Vector2 &lastNewPosition = std::get<2>(MoveSimulation::lastMove);
-            
-            // If last move was an opponent's pawn
-            if (lastMovePiece.type == PAWN && lastMovePiece.color != currentPlayerColor)
+            // Use selectedPiecePosition (the ORIGINAL position before dragging started)
+            // Use round() to avoid floating-point precision errors (e.g., 1.9999 -> 2, not 1)
+            int pawnX = static_cast<int>(std::round((selectedPiecePosition.x - boardPosition.x) / squareSize));
+            int pawnY = static_cast<int>(std::round((selectedPiecePosition.y - boardPosition.y) / squareSize));
+            int moveX = static_cast<int>(std::round((move.x - boardPosition.x) / squareSize));
+            int moveY = static_cast<int>(std::round((move.y - boardPosition.y) / squareSize));
+
+            int dx = std::abs(moveX - pawnX);
+            int dy = std::abs(moveY - pawnY);
+
+            // Diagonal pawn move (dx==1, dy==1) with no piece at destination = en passant
+            if (dx == 1 && dy == 1)
             {
-                // Check if it was a double pawn move (2 squares)
-                int lastMoveStartY = static_cast<int>((lastOriginalPosition.y - boardPosition.y) / squareSize);
-                int lastMoveEndY = static_cast<int>((lastNewPosition.y - boardPosition.y) / squareSize);
-                
-                if (std::abs(lastMoveEndY - lastMoveStartY) == 2)
-                {
-                    // Check if the move target is the en passant capture square
-                    int moveX = static_cast<int>((move.x - boardPosition.x) / squareSize);
-                    int moveY = static_cast<int>((move.y - boardPosition.y) / squareSize);
-                    int lastPawnX = static_cast<int>((lastNewPosition.x - boardPosition.x) / squareSize);
-                    
-                    // En passant capture square is behind where opponent's pawn landed
-                    // Use same formula as IsEnPassantValid: enPassantY = lastMoveStartY - direction
-                    int direction = (currentPlayerColor == 0) ? 1 : -1;
-                    int enPassantY = lastMoveStartY - direction;
-                    
-                    if (moveX == lastPawnX && moveY == enPassantY)
-                    {
-                        isCapture = true;
-                    }
-                }
+                isCapture = true;
             }
         }
 
@@ -329,7 +318,7 @@ void Board::DrawValidMoveHighlights()
         {
 
             // Draw capture indicator (filled square with border)
-            DrawRectangle(
+            DrawBlurredRectangle(
                 static_cast<int>(drawPos.x),
                 static_cast<int>(drawPos.y + 3.4),
                 static_cast<int>(squareSize),
@@ -350,7 +339,7 @@ void Board::DrawValidMoveHighlights()
                 radius,
                 Blackcolor);
 
-            DrawRectangle(
+            DrawBlurredRectangle(
                 static_cast<int>(drawPos.x),
                 static_cast<int>(drawPos.y + 3.4),
                 static_cast<int>(squareSize),
@@ -358,6 +347,48 @@ void Board::DrawValidMoveHighlights()
                 moveColor);
         }
     }
+}
+
+void Board::DrawBlurredRectangle(float x, float y, float width, float height, Color baseColor, int blurLayers)
+{
+
+    // blurLayers: Number of outer Layers for the blur effect
+    // Each Layer extends outward has less opacity
+
+    float layerSize = 2.0f; // How many pixels each blur layer extends
+
+    // Draw outer blur Layers first (back to front)
+    for (int i = blurLayers; i > 0; i--)
+    {
+
+        // Calcualte layer dimensions (extends outwards from the main rectangle)
+        float layerX = x - (0.8 * i * layerSize);
+        float layerY = y - (0.6 * i * layerSize);
+        float layerWidth = width + (i * layerSize);
+        float layerHeight = height + (i * layerSize);
+
+        // Calculate alpha: outer layer are more transparent
+        // Uses exponential falloff for smoother blur
+        float alphaFactor = 1.0f / (i + 1);
+        unsigned char layerAlpha = static_cast<unsigned char>(baseColor.a * alphaFactor * 0.5f);
+
+        Color layerColor = {baseColor.r, baseColor.g, baseColor.b, layerAlpha};
+
+        // Draw only the border of each layer (not filled)
+        // Glow effect
+        DrawRectangleLinesEx(
+            Rectangle{layerX, layerY, layerWidth, layerHeight},
+            layerSize, // line thickness
+            layerColor);
+    }
+
+    // Daw the main filled rectangle on top
+    DrawRectangle(
+        static_cast<int>(x),
+        static_cast<int>(y),
+        static_cast<int>(width),
+        static_cast<int>(height),
+        baseColor);
 }
 
 void Board::DrawPromotionMenu(Vector2 position, int color)
@@ -393,14 +424,11 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
             Rectangle pieceRect = {static_cast<float>(position.x) + i * squareSize, static_cast<float>(position.y), squareSize, squareSize};
             if (CheckCollisionPointRec(mousePos, pieceRect))
             {
-                std::cout << "Collision: " << i << std::endl;
-
                 // Finding pawn that is being promoted
                 for (auto &piece : pieces)
                 {
                     if (Vector2Equals(piece.position, promotionPosition) && piece.type == PAWN && piece.color == color)
                     {
-                        std::cout << "Pawn found" << std::endl;
                         // Replacing pawn with the selected piece
                         piece.type = static_cast<PieceType>(i + 1); // i + 1 because 0: Rook, 1: Knight, 2: Bishop, 3: Queen
                         piece.texture = promotionTexture[(color == 0 ? i : i + 6)];
@@ -417,8 +445,6 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
 
 void Board::CapturePiece(int capturedPieceIndex)
 {
-    std::cout << "Captured piece index: " << capturedPieceIndex << std::endl;
-
     // Side panel captured pieces layout
     float sidePanelX = 920; // Start X position in side panel
     float spacing = 70;     // Space between pieces
@@ -477,20 +503,15 @@ void Board::ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &piec
             break;
         }
     }
-    std::cout << "King position = " << king.position.y << std::endl;
 
-    // Debugging log to track the state of the king and rook
     if (!rook)
     {
-        std::cout << "Rook not found for castling! RookX: " << rookX << ", RookY: " << rookY << std::endl;
         return; // Rook not found
     }
-    std::cout << "Rook found at (" << rook->position.x << ", " << rook->position.y << ")" << std::endl;
 
     // Checking if king or rook has moved
     if (king.hasMoved || rook->hasMoved)
     {
-        std::cout << "Castling not allowed, king or rook has moved." << std::endl;
         return; // Either the king or rook has moved
     }
 
@@ -507,34 +528,20 @@ void Board::ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &piec
     // Mark king and rook as moved
     king.hasMoved = true;
     rook->hasMoved = true;
-    // Log the positions for debugging
-    std::cout << "Castling performed: King moved to (" << newKingPos.x << ", " << newKingPos.y << "), Rook moved to ("
-              << newRookPos.x << ", " << newRookPos.y << ")\n";
 }
 
 void Board::ExecuteEnPassant(Piece &capturingPawn, std::vector<Piece> &pieces, const Vector2 &originalPosition, const Vector2 &newPosition)
 {
-
     float capturedPawnX = newPosition.x;
     float capturedPawnY = originalPosition.y; // The captured pawn is directly behind the capturing pawn
 
-    std::cout << "Attempting to capture pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
-
-    for (const auto &piece : pieces)
-    {
-        std::cout << "Piece Type: " << piece.type << ", Position: (" << piece.position.x << ", " << piece.position.y << ")" << std::endl;
-    }
     for (std::size_t i = 0; i < pieces.size(); ++i)
     {
-
-        std::cout << "Checking piece at index " << i << " with position (" << pieces[i].position.x << ", " << pieces[i].position.y << ")" << std::endl;
-
         // Use tolerance-based comparison for floating-point positions
-        if (std::abs(pieces[i].position.x - capturedPawnX) < 1.0f && 
-            std::abs(pieces[i].position.y - capturedPawnY) < 1.0f && 
+        if (std::abs(pieces[i].position.x - capturedPawnX) < 1.0f &&
+            std::abs(pieces[i].position.y - capturedPawnY) < 1.0f &&
             pieces[i].type == PAWN && pieces[i].color != capturingPawn.color)
         {
-            std::cout << "Capturing Pawn at (" << capturedPawnX << ", " << capturedPawnY << ")" << std::endl;
             this->CapturePiece(i);
             break;
         }
@@ -589,8 +596,9 @@ void Board::UpdateDragging()
                     if (!hasPieceSelected || !Vector2Equals(selectedPiecePosition, pieces[i].position))
                     {
 
-                        // New piece selected - generate moves
+                        // New piece selected - generate moves and store piece info
                         selectedPiecePosition = pieces[i].position;
+                        selectedPieceType = pieces[i].type; // Store piece type for highlight detection
                         hasPieceSelected = true;
                         currentValidMoves = MoveGeneration::GetAllPossibleMoves(pieces[i], pieces, *this);
                     }
@@ -719,8 +727,7 @@ void Board::UpdateDragging()
 
                                 if (MoveValidator::IsCheckmate(pieces, gameState->getCurrentPlayer() == 0 ? 1 : 0, *this))
                                 {
-                                    std::cout << "Checkmate detected!" << std::endl;
-                                    std::cout << (gameState->getCurrentPlayer() == 1 ? "White Wins" : "Black Wins") << std::endl;
+
                                     if (gameState->getCurrentPlayer() == 1)
                                     {
                                         Cwhite = true;

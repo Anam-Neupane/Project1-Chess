@@ -21,7 +21,6 @@ bool SimulateMoveForOur(Piece& piece, const Vector2& newPosition, std::vector<Pi
     for (Piece& otherPiece : pieces) {
         if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color) {
             capturedPiece = &otherPiece;
-             std::cout << "Simulating capture of piece of type " << otherPiece.type << " at position (" << otherPiece.position.x << ", " << otherPiece.position.y << ")." << std::endl;
             break;
         }
     }
@@ -42,22 +41,23 @@ bool SimulateMoveForOur(Piece& piece, const Vector2& newPosition, std::vector<Pi
         capturedPiece->captured = false;
     }
 
-     std::cout << "Move simulation results: Our King " << (isInCheck ? "is in check" : "is not in check") << "." << std::endl;
-    return !isInCheck;
-}
-
-bool SimulateMove(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board) {
-    
-    Vector2 tempPosition = piece.position;
-    Piece* capturedPiece = nullptr;
-
-    for (Piece& otherPiece : pieces) {
-        if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color) {
-            capturedPiece = &otherPiece;
-            std::cout << "Simulating capture of piece of type " << otherPiece.type << " at position (" << otherPiece.position.x << ", " << otherPiece.position.y << ")." << std::endl;
-            break;
-        }
+        return !isInCheck;
     }
+
+    bool SimulateMove(Piece &piece, const Vector2 &newPosition, std::vector<Piece> &pieces, Board &board)
+    {
+
+        Vector2 tempPosition = piece.position;
+        Piece *capturedPiece = nullptr;
+
+        for (Piece &otherPiece : pieces)
+        {
+            if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color)
+            {
+                capturedPiece = &otherPiece;
+                break;
+            }
+        }
 
     piece.position = newPosition;
     if (capturedPiece) {
@@ -72,9 +72,8 @@ bool SimulateMove(Piece& piece, const Vector2& newPosition, std::vector<Piece>& 
         capturedPiece->captured = false;
     }
 
-    std::cout << "Move simulation results: Opponent King " << (isInCheck ? "is in check" : "is not in check") << "." << std::endl;
-    return !isInCheck;
-}
+        return !isInCheck;
+    }
 
 bool CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board) {
     
@@ -99,17 +98,19 @@ bool CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &p
     king.position = newPosition;
 
 
-    // Checking if the king is still in check after moving
-    bool isInCheck = false;
-    for (const auto& piece : pieces) {
-        if (piece.color != king.color && !piece.captured) {
-            if (PieceMovement::CanPieceAttack(piece, newPosition, pieces)) {
-                std::cout << "King would be captured at new position." << std::endl;
-                isInCheck = true;
-                break;
+        // Checking if the king is still in check after moving
+        bool isInCheck = false;
+        for (const auto &piece : pieces)
+        {
+            if (piece.color != king.color && !piece.captured)
+            {
+                if (PieceMovement::CanPieceAttack(piece, newPosition, pieces))
+                {
+                    isInCheck = true;
+                    break;
+                }
             }
         }
-    }
 
     // King's original position
     king.position = tempKingPosition;

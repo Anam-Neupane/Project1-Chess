@@ -10,6 +10,7 @@
 #include <raymath.h>
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 
 namespace MoveGeneration {
 
@@ -43,16 +44,22 @@ std::vector<Vector2> GetAllPossibleMoves(Piece& piece, std::vector<Piece>& piece
             break;
     }
 
-
-    // Validating each generated move (for highlighting only - no side effects)
-    for (Vector2& potentialMove : generatedMoves) {
-        if (MoveValidator::IsMoveValid(piece, potentialMove, pieces, piece.position, board, true)) {
-            std::cout << "    Valid move to (" << potentialMove.x << "," << potentialMove.y << ")" << std::endl;
-            moves.push_back(potentialMove);
-        } else {
-            std::cout << "    Invalid move to (" << potentialMove.x << "," << potentialMove.y << ")" << std::endl;
+        // Validating each generated move (for highlighting only - no side effects)
+        for (size_t i = 0; i < generatedMoves.size(); i++)
+        {
+            // Make a deep copy BEFORE validation - IsMoveValid modifies the Vector2 reference!
+            float origX = generatedMoves[i].x;
+            float origY = generatedMoves[i].y;
+            Vector2 moveToValidate = {origX, origY};
+            
+            bool valid = MoveValidator::IsMoveValid(piece, moveToValidate, pieces, piece.position, board, true);
+            
+            if (valid)
+            {
+                // Store the ORIGINAL coordinates, not the modified ones
+                moves.push_back({origX, origY});
+            }
         }
-    }
 
     return moves;
 }

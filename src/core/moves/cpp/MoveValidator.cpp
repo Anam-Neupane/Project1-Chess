@@ -19,7 +19,6 @@ bool MoveValidator::IsKingInCheck(const std::vector<Piece> &pieces, const Vector
         { // Checking only opponent's pieces
             if (PieceMovement::CanPieceAttack(piece, kingPosition, pieces))
             {
-                std::cout << "King is in check by piece of type " << piece.type << " at position (" << piece.position.x << "," << piece.position.y << ")" << std::endl;
                 return true; // King is in check
             }
         }
@@ -39,7 +38,8 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
         if (PieceMovement::IsEnPassantValid(piece, newPosition, pieces, originalPosition))
         {
             // Only execute en passant when not just checking for highlighting
-            if (!forHighlightOnly) {
+            if (!forHighlightOnly)
+            {
                 board.ExecuteEnPassant(const_cast<Piece &>(piece), const_cast<std::vector<Piece> &>(pieces), originalPosition, newPosition);
             }
             isValid = true;
@@ -67,7 +67,8 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
             if (MoveSimulation::CheckKingAfterMove(piece, newPosition, pieces, originalPosition, board))
             {
                 // Only set hasMoved when actually executing the move
-                if (!forHighlightOnly) {
+                if (!forHighlightOnly)
+                {
                     piece.hasMoved = true;
                 }
                 isValid = true;
@@ -76,7 +77,8 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
         if (PieceMovement::IsCastlingValid(piece, newPosition, pieces, originalPosition, board))
         {
             // Only execute castling when actually making the move, not for highlighting
-            if (!forHighlightOnly) {
+            if (!forHighlightOnly)
+            {
                 bool kingside = newPosition.x > originalPosition.x;
                 Board::ExecuteCastling(const_cast<Piece &>(piece), kingside, const_cast<std::vector<Piece> &>(pieces), originalPosition);
             }
@@ -94,16 +96,12 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
     {
         if (!MoveSimulation::SimulateMoveForOur(const_cast<Piece &>(piece), newPosition, const_cast<std::vector<Piece> &>(pieces), board))
         {
-            std::cout << "Move would leave the king in check!" << std::endl;
             return false;
         }
     }
 
-    // Checking if opponent's king is in check after move
-    if (!MoveSimulation::SimulateMove(const_cast<Piece &>(piece), newPosition, const_cast<std::vector<Piece> &>(pieces), board) && isValid)
-    {
-        std::cout << "Opponent's king Checking done." << std::endl;
-    }
+    // Checking if opponent's king is in check after move (for future check/checkmate detection)
+    MoveSimulation::SimulateMove(const_cast<Piece &>(piece), newPosition, const_cast<std::vector<Piece> &>(pieces), board);
 
     // For pawn promotion
     if (isValid && piece.type == PAWN)
@@ -116,7 +114,6 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
             board.PawnPromo = true;
             board.promotionPosition = newPosition;
             board.p1 = (piece.color == 0) ? 0 : 1;
-            std::cout << "Promoting pawn" << std::endl;
         }
     }
 
@@ -124,24 +121,19 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
     if (isValid && !forHighlightOnly)
     {
         MoveSimulation::lastMove = std::make_tuple(piece, originalPosition, newPosition); // Storing the move
-        std::cout << "Move is valid." << std::endl;
     }
     return isValid;
 }
 
 bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board &board)
 {
-    std::cout << "Checking for checkmate..." << std::endl;
     Vector2 kingPosition = (kingColor == 1) ? board.whiteKingPosition : board.blackKingPosition;
 
     // First, check if the king is in check
     if (!MoveValidator::IsKingInCheck(pieces, kingPosition, kingColor, board))
     {
-        std::cout << "King is not in check" << std::endl;
         return false; // Not checkmate if the king is not in check
     }
-
-    std::cout << "King is in check, looking for escape moves..." << std::endl;
 
     // Try all possible moves for all pieces of the same color
     for (auto &piece : pieces)
@@ -150,41 +142,42 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
         {
             // Generate raw potential moves (without IsMoveValid filtering)
             std::vector<Vector2> potentialMoves;
-            
-            switch (piece.type) {
-                case PAWN:
-                    potentialMoves = MoveGeneration::GetPawnMoves(piece, pieces, board);
-                    break;
-                case ROOK:
-                    potentialMoves = MoveGeneration::GetRookMoves(piece, pieces, board);
-                    break;
-                case BISHOP:
-                    potentialMoves = MoveGeneration::GetBishopMoves(piece, pieces, board);
-                    break;
-                case QUEEN:
-                    potentialMoves = MoveGeneration::GetQueenMoves(piece, pieces, board);
-                    break;
-                case KNIGHT:
-                    potentialMoves = MoveGeneration::GetKnightMoves(piece, pieces, board);
-                    break;
-                case KING:
-                    potentialMoves = MoveGeneration::GetKingMoves(piece, pieces, board);
-                    break;
-                default:
-                    break;
+
+            switch (piece.type)
+            {
+            case PAWN:
+                potentialMoves = MoveGeneration::GetPawnMoves(piece, pieces, board);
+                break;
+            case ROOK:
+                potentialMoves = MoveGeneration::GetRookMoves(piece, pieces, board);
+                break;
+            case BISHOP:
+                potentialMoves = MoveGeneration::GetBishopMoves(piece, pieces, board);
+                break;
+            case QUEEN:
+                potentialMoves = MoveGeneration::GetQueenMoves(piece, pieces, board);
+                break;
+            case KNIGHT:
+                potentialMoves = MoveGeneration::GetKnightMoves(piece, pieces, board);
+                break;
+            case KING:
+                potentialMoves = MoveGeneration::GetKingMoves(piece, pieces, board);
+                break;
+            default:
+                break;
             }
 
             for (const Vector2 &move : potentialMoves)
             {
                 // Save original state
                 Vector2 originalPosition = piece.position;
-                
+
                 // Find if there's an enemy piece to capture at the target position
-                Piece* capturedPiece = nullptr;
+                Piece *capturedPiece = nullptr;
                 for (auto &otherPiece : pieces)
                 {
-                    if (!otherPiece.captured && 
-                        Vector2Equals(otherPiece.position, move) && 
+                    if (!otherPiece.captured &&
+                        Vector2Equals(otherPiece.position, move) &&
                         otherPiece.color != piece.color)
                     {
                         capturedPiece = &otherPiece;
@@ -196,15 +189,15 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
                 bool blockedByOwnPiece = false;
                 for (const auto &otherPiece : pieces)
                 {
-                    if (!otherPiece.captured && 
-                        Vector2Equals(otherPiece.position, move) && 
+                    if (!otherPiece.captured &&
+                        Vector2Equals(otherPiece.position, move) &&
                         otherPiece.color == piece.color)
                     {
                         blockedByOwnPiece = true;
                         break;
                     }
                 }
-                
+
                 if (blockedByOwnPiece)
                 {
                     continue; // Can't move to a square occupied by own piece
@@ -236,14 +229,6 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
 
                 if (!stillInCheck)
                 {
-                    std::cout << "Found escape: piece type " << piece.type
-                              << " from (" << originalPosition.x << "," << originalPosition.y
-                              << ") to (" << move.x << "," << move.y << ")";
-                    if (capturedPiece)
-                    {
-                        std::cout << " (capturing piece type " << capturedPiece->type << ")";
-                    }
-                    std::cout << std::endl;
                     return false; // Found a valid move that escapes check
                 }
             }
@@ -251,6 +236,5 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
     }
 
     // No valid moves found that get the king out of check
-    std::cout << "CHECKMATE! No escape moves found." << std::endl;
     return true;
 }
