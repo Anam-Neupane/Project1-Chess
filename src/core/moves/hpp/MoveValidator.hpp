@@ -7,16 +7,27 @@
 
 class Board; // Forward Declaration
 
-class MoveValidator {
-        
-    public:
+namespace MoveValidator {
 
-    static bool IsMoveValid(Piece &piece, Vector2 &newPosition, 
-                           std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board, 
-                           bool forHighlightOnly = false); 
-    static bool IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board &board);
-    static bool IsKingInCheck(const std::vector<Piece> &pieces,
-                            const Vector2 &kingPosition, int kingColor, const Board &board);
+    bool IsMoveLegal(const Piece& piece, const Vector2& newPosition,
+                     const std::vector<Piece>& pieces, const Vector2& originalPosition,
+                     Board& board);
+
+    void ExecuteMove(Piece& piece, Vector2& newPosition,
+                     std::vector<Piece>& pieces, const Vector2& originalPosition,
+                     Board& board);
+
+    // Combined validation + execution (for backwards compatibility)
+    bool IsMoveValid(Piece &piece, Vector2 &newPosition, 
+                          std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board, 
+                          bool forHighlightOnly = false); 
+
+    bool IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board &board);
+    bool IsKingInCheck(const std::vector<Piece> &pieces,
+                           const Vector2 &kingPosition, int kingColor, const Board &board);
+
+    // Quick check if a move is in the pre-generated valid moves list
+     bool IsMoveInValidMoves(const Vector2& targetPosition, const std::vector<Vector2>& validMoves);
 };
 
 #endif // MOVEVALID_HPP

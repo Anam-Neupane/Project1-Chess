@@ -7,26 +7,45 @@
 
 #include <iostream>
 #include <raylib.h>
-#include <raymath.h>
+
+using MoveUtils::Vector2Equals;
 
 namespace MoveSimulation {
 
     
 bool SimulateMoveForOur(Piece& piece, const Vector2& newPosition, std::vector<Piece>& pieces, Board& board) {
     
-    Vector2 tempPosition = piece.position;
+    // Find the actual piece in the pieces vector (piece might be a copy)
+    Piece* movingPiece = nullptr;
+    for (Piece& p : pieces) {
+        if (!p.captured && 
+            Vector2Equals(p.position, piece.position) && 
+            p.type == piece.type && 
+            p.color == piece.color) {
+            movingPiece = &p;
+            break;
+        }
+    }
+    
+    if (!movingPiece) {
+        return false; // Piece not found in vector
+    }
+    
+    Vector2 tempPosition = movingPiece->position;
     Piece* capturedPiece = nullptr;
 
     // Checking if the move would capture a piece
     for (Piece& otherPiece : pieces) {
-        if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color) {
+        if (!otherPiece.captured && 
+            Vector2Equals(otherPiece.position, newPosition) && 
+            otherPiece.color != piece.color) {
             capturedPiece = &otherPiece;
             break;
         }
     }
 
-    // Temporarily moving the piece
-    piece.position = newPosition;
+    // Temporarily moving the piece IN THE VECTOR
+    movingPiece->position = newPosition;
     if (capturedPiece) {
         capturedPiece->captured = true;
     }
@@ -36,100 +55,107 @@ bool SimulateMoveForOur(Piece& piece, const Vector2& newPosition, std::vector<Pi
     bool isInCheck = MoveValidator::IsKingInCheck(pieces, kingPosition, piece.color, board);
 
     // Revert the move
-    piece.position = tempPosition;
+    movingPiece->position = tempPosition;
     if (capturedPiece) {
         capturedPiece->captured = false;
     }
 
-        return !isInCheck;
-    }
+    return !isInCheck;
+}
 
     bool SimulateMove(Piece &piece, const Vector2 &newPosition, std::vector<Piece> &pieces, Board &board)
     {
+        // Find the actual piece in the pieces vector (piece might be a copy)
+        Piece* movingPiece = nullptr;
+        for (Piece& p : pieces) {
+            if (!p.captured && 
+                Vector2Equals(p.position, piece.position) && 
+                p.type == piece.type && 
+                p.color == piece.color) {
+                movingPiece = &p;
+                break;
+            }
+        }
+        
+        if (!movingPiece) {
+            return false; // Piece not found in vector
+        }
 
-        Vector2 tempPosition = piece.position;
+        Vector2 tempPosition = movingPiece->position;
         Piece *capturedPiece = nullptr;
 
         for (Piece &otherPiece : pieces)
         {
-            if (Vector2Equals(otherPiece.position, newPosition) && otherPiece.color != piece.color)
+            if (!otherPiece.captured && 
+                Vector2Equals(otherPiece.position, newPosition) && 
+                otherPiece.color != piece.color)
             {
                 capturedPiece = &otherPiece;
                 break;
             }
         }
 
-    piece.position = newPosition;
-    if (capturedPiece) {
-        capturedPiece->captured = true;
-    }
+        movingPiece->position = newPosition;
+        if (capturedPiece) {
+            capturedPiece->captured = true;
+        }
 
-    Vector2 opponentKingPosition = (piece.color == 0) ? board.whiteKingPosition : board.blackKingPosition;
-    bool isInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPosition, 1 - piece.color, board);
+        Vector2 opponentKingPosition = (piece.color == 0) ? board.whiteKingPosition : board.blackKingPosition;
+        bool isInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPosition, 1 - piece.color, board);
 
-    piece.position = tempPosition;
-    if (capturedPiece) {
-        capturedPiece->captured = false;
-    }
+        movingPiece->position = tempPosition;
+        if (capturedPiece) {
+            capturedPiece->captured = false;
+        }
 
         return !isInCheck;
     }
 
 bool CheckKingAfterMove(Piece &king, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board) {
     
-    // Temporarily storing current position of the king
-    Vector2 tempKingPosition = king.position;
-
-    // Storing references to the piece at new position, if any
-    Piece* capturedPiece = nullptr;
-    bool isCaptured = false;
+    // Find the actual king in the pieces vector (king might be a copy)
+    Piece* actualKing = nullptr;
+    for (Piece& p : pieces) {
+        if (!p.captured && 
+            p.type == KING && 
+            p.color == king.color) {
+            actualKing = &p;
+            break;
+        }
+    }
     
-    // Find and temporarily mark the piece at the new position as captured (if any)
+    if (!actualKing) {
+        return false; // King not found
+    }
+    
+    // Store original position
+    Vector2 tempKingPosition = actualKing->position;
+
+    // Find and temporarily mark the piece at new position as captured (if any)
+    Piece* capturedPiece = nullptr;
     for (auto& piece : pieces) {
-        if (Vector2Equals(piece.position, newPosition) && !piece.captured) {
+        if (!piece.captured && 
+            Vector2Equals(piece.position, newPosition) && 
+            piece.color != king.color) {
             capturedPiece = &piece;
             capturedPiece->captured = true;
-            isCaptured = true;
             break;
         }
     }
 
-    // Moving the king to new position
-    king.position = newPosition;
+    // Move the king to new position IN THE VECTOR
+    actualKing->position = newPosition;
 
+    // Check if king is in check at the new position
+    bool isInCheck = MoveValidator::IsKingInCheck(pieces, newPosition, king.color, board);
 
-        // Checking if the king is still in check after moving
-        bool isInCheck = false;
-        for (const auto &piece : pieces)
-        {
-            if (piece.color != king.color && !piece.captured)
-            {
-                if (PieceMovement::CanPieceAttack(piece, newPosition, pieces))
-                {
-                    isInCheck = true;
-                    break;
-                }
-            }
-        }
-
-    // King's original position
-    king.position = tempKingPosition;
-
-    // Restoring the captured piece if it was temporarily marked
-    if (isCaptured && capturedPiece) {
+    // Restore original state
+    actualKing->position = tempKingPosition;
+    if (capturedPiece) {
         capturedPiece->captured = false;
     }
 
-
-    if (isInCheck) {
-        return false; //King is in check after the move
-    }
-
-    // Performing a final check if the king is still in check after all moves
-    bool finalCheck = MoveValidator::IsKingInCheck(pieces, newPosition, king.color, board);
-
-    // Return false if the king is in check; otherwise, return true
-    return !finalCheck;
+    return !isInCheck;
 }
 
 

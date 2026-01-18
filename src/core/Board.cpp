@@ -659,8 +659,37 @@ void Board::UpdateDragging()
                             tempKingPosition = (pieces[draggedPieceIndex].color == 0) ? blackKingPosition : whiteKingPosition;
                         }
 
+                        // OPTIMIZED MOVE VALIDATION FLOW:
+                        // 1. If we have cached valid moves, use quick lookup first
+                        // 2. Only proceed to IsMoveValid for special move execution (castling, en passant)
+                        // 3. If move not in cache, reject immediately without expensive validation
+
+                        bool moveIsValid = false;
+
+                        // First, quick check if the move is in our pre-calculated valid moves
+                        if (!currentValidMoves.empty())
+                        {
+                            if (MoveValidator::IsMoveInValidMoves(newPosition, currentValidMoves))
+                            {
+                                // The move was pre-validated during piece pickup
+                                // Still need IsMoveValid for special move execution (castling, en passant, lastMove update)
+                                moveIsValid = MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this);
+                            }
+                            else
+                            {
+                                // Move NOT in cached valid moves - reject immediately
+                                // This saves expensive re-validation for invalid moves
+                                moveIsValid = false;
+                            }
+                        }
+                        else
+                        {
+                            // No cached moves (feature disabled or first move), fall back to full validation
+                            moveIsValid = MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this);
+                        }
+
                         // Checking if the move is valid
-                        if (MoveValidator::IsMoveValid(pieces[draggedPieceIndex], newPosition, pieces, originalPosition, *this))
+                        if (moveIsValid)
                         {
                             pieces[draggedPieceIndex].position = newPosition;
 
@@ -682,58 +711,42 @@ void Board::UpdateDragging()
                                 }
                             }
 
-                            // For capturing
-                            //  for (std::size_t i = 0; i < pieces.size(); ++i) {
-                            //  if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color) {
-                            //          CapturePiece(i);  // Capture the piece
-                            //          break;
-                            //      }
-                            //  }
-
-                            // For capturing
+                            // For capturing - simplified since move is already validated
                             bool validCapture = true;
                             for (std::size_t i = 0; i < pieces.size(); ++i)
                             {
                                 if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color)
                                 {
-
-                                    Vector2 tempPosition = pieces[draggedPieceIndex].position;
-                                    Piece capturedPiece = pieces[i];
-                                    pieces.erase(pieces.begin() + i);
-                                    pieces[draggedPieceIndex].position = newPosition;
-
-                                    bool isKingSafe = !MoveValidator::IsKingInCheck(pieces, pieces[draggedPieceIndex].color == 0 ? blackKingPosition : whiteKingPosition, pieces[draggedPieceIndex].color, *this);
-
-                                    pieces[draggedPieceIndex].position = tempPosition;
-                                    pieces.insert(pieces.begin() + i, capturedPiece);
-
-                                    if (isKingSafe)
-                                    {
-                                        this->CapturePiece(i);
-                                    }
-                                    else
-                                    {
-                                        pieces[draggedPieceIndex].position = originalPosition;
-                                        validCapture = false;
-                                    }
+                                    // Move was pre-validated, capture is safe
+                                    this->CapturePiece(i);
                                     break;
                                 }
                             }
+
                             // Checkmate detection after a valid move
                             if (validCapture)
                             {
-
                                 pieces[draggedPieceIndex].position = newPosition;
 
-                                if (MoveValidator::IsCheckmate(pieces, gameState->getCurrentPlayer() == 0 ? 1 : 0, *this))
-                                {
+                                bool opponentInCheck = MoveValidator::IsKingInCheck(pieces,
+                                    pieces[draggedPieceIndex].color == 0 ? whiteKingPosition : blackKingPosition, 
+                                    !pieces[draggedPieceIndex].color,
+                                     *this);
 
-                                    if (gameState->getCurrentPlayer() == 1)
+                                if(opponentInCheck){   
+                                    // 0 for black and 1 for white 
+                                    if (MoveValidator::IsCheckmate(pieces, 
+                                        gameState->getCurrentPlayer() == 0 ? 1 : 0, 
+                                        *this))
                                     {
-                                        Cwhite = true;
+
+                                        if (gameState->getCurrentPlayer() == 1)
+                                        {
+                                            Cwhite = true;
+                                        }
+                                        Checkmate = true;
+                                        return;
                                     }
-                                    Checkmate = true;
-                                    return;
                                 }
 
                                 // Damn I worked Hard in this function

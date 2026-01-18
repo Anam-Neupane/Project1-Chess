@@ -26,6 +26,124 @@ bool MoveValidator::IsKingInCheck(const std::vector<Piece> &pieces, const Vector
     return false; // King is not in check
 }
 
+bool MoveValidator::IsMoveLegal(const Piece &piece, const Vector2 &newPosition,
+                                const std::vector<Piece> &pieces, const Vector2 &originalPosition,
+                                Board &board)
+{
+    bool isValid = false;
+
+    // Create mutable copies for functions that require non-const references
+    Piece tempPiece = piece;
+    Vector2 tempNewPos = newPosition;
+    std::vector<Piece> tempPieces = pieces;
+
+    // Validate move based on piece type (no execution, just checking)
+    switch (piece.type)
+    {
+    case PAWN:
+        if (PieceMovement::IsEnPassantValid(piece, newPosition, pieces, originalPosition))
+        {
+            isValid = true;
+        }
+        else
+        {
+            isValid = PieceMovement::IsPawnMoveValid(piece, newPosition, pieces, originalPosition);
+        }
+        break;
+    case ROOK:
+        isValid = PieceMovement::IsRookMoveValid(piece, newPosition, pieces, originalPosition);
+        break;
+    case BISHOP:
+        isValid = PieceMovement::IsBishopMoveValid(piece, newPosition, pieces, originalPosition);
+        break;
+    case QUEEN:
+        isValid = PieceMovement::IsQueenMoveValid(piece, newPosition, pieces, originalPosition);
+        break;
+    case KNIGHT:
+        isValid = PieceMovement::IsKnightMoveValid(piece, newPosition, pieces, originalPosition);
+        break;
+    case KING:
+        if (PieceMovement::IsKingMoveValid(piece, newPosition, pieces, originalPosition))
+        {
+            if (MoveSimulation::CheckKingAfterMove(tempPiece, tempNewPos, tempPieces, originalPosition, board))
+            {
+                isValid = true;
+            }
+        }
+        // Use temp copies for IsCastlingValid since it requires non-const references
+        if (PieceMovement::IsCastlingValid(tempPiece, tempNewPos, tempPieces, originalPosition, board))
+        {
+            isValid = true;
+        }
+        break;
+    default:
+        isValid = false;
+        break;
+    }
+
+    // After validating the move, check if it leaves our king in check
+    if (isValid && piece.type != KING)
+    {
+        // Reset temp copies for simulation
+        tempPiece = piece;
+        tempPieces = pieces;
+        tempNewPos = newPosition;
+
+        if (!MoveSimulation::SimulateMoveForOur(tempPiece, tempNewPos, tempPieces, board))
+        {
+            return false;
+        }
+    }
+
+    return isValid;
+}
+
+void MoveValidator::ExecuteMove(Piece &piece, Vector2 &newPosition,
+                                std::vector<Piece> &pieces, const Vector2 &originalPosition,
+                                Board &board)
+{
+    // Handle special moves based on piece type
+    switch (piece.type)
+    {
+    case PAWN:
+        if (PieceMovement::IsEnPassantValid(piece, newPosition, pieces, originalPosition))
+        {
+            board.ExecuteEnPassant(piece, pieces, originalPosition, newPosition);
+        }
+        // Check for pawn promotion
+        {
+            int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
+            int promotionRank = (piece.color == 0) ? 7 : 0;
+            if (newY == promotionRank)
+            {
+                board.PawnPromo = true;
+                board.promotionPosition = newPosition;
+                board.p1 = (piece.color == 0) ? 0 : 1;
+            }
+        }
+        break;
+    case ROOK:
+        piece.hasMoved = true;
+        break;
+    case KING:
+        piece.hasMoved = true;
+        if (PieceMovement::IsCastlingValid(piece, newPosition, pieces, originalPosition, board))
+        {
+            bool kingside = newPosition.x > originalPosition.x;
+            Board::ExecuteCastling(piece, kingside, pieces, originalPosition);
+        }
+        break;
+    default:
+        break;
+    }
+
+    // Update lastMove for en passant detection and move highlighting
+    MoveSimulation::lastMove = std::make_tuple(piece, originalPosition, newPosition);
+
+    // Check if opponent's king is in check (for future check/checkmate detection)
+    MoveSimulation::SimulateMove(piece, newPosition, pieces, board);
+}
+
 bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<Piece> &pieces, const Vector2 &originalPosition, Board &board, bool forHighlightOnly)
 {
 
@@ -140,7 +258,9 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
     {
         if (piece.color == kingColor && !piece.captured)
         {
-            // Generate raw potential moves (without IsMoveValid filtering)
+            Vector2 originalPosition = piece.position;
+
+            // Generate potential moves based on piece type
             std::vector<Vector2> potentialMoves;
 
             switch (piece.type)
@@ -167,69 +287,12 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
                 break;
             }
 
+            // Check if any move is legal (IsMoveLegal validates piece rules AND checks if king stays safe)
             for (const Vector2 &move : potentialMoves)
             {
-                // Save original state
-                Vector2 originalPosition = piece.position;
-
-                // Find if there's an enemy piece to capture at the target position
-                Piece *capturedPiece = nullptr;
-                for (auto &otherPiece : pieces)
+                if (MoveValidator::IsMoveLegal(piece, move, pieces, originalPosition, board))
                 {
-                    if (!otherPiece.captured &&
-                        Vector2Equals(otherPiece.position, move) &&
-                        otherPiece.color != piece.color)
-                    {
-                        capturedPiece = &otherPiece;
-                        break;
-                    }
-                }
-
-                // Check if move is blocked by own piece (can't move there)
-                bool blockedByOwnPiece = false;
-                for (const auto &otherPiece : pieces)
-                {
-                    if (!otherPiece.captured &&
-                        Vector2Equals(otherPiece.position, move) &&
-                        otherPiece.color == piece.color)
-                    {
-                        blockedByOwnPiece = true;
-                        break;
-                    }
-                }
-
-                if (blockedByOwnPiece)
-                {
-                    continue; // Can't move to a square occupied by own piece
-                }
-
-                // Simulate the move
-                piece.position = move;
-                if (capturedPiece)
-                {
-                    capturedPiece->captured = true;
-                }
-
-                // Update king position if the king moved
-                Vector2 checkKingPos = kingPosition;
-                if (piece.type == KING)
-                {
-                    checkKingPos = move;
-                }
-
-                // Check if king is still in check after this move
-                bool stillInCheck = MoveValidator::IsKingInCheck(pieces, checkKingPos, kingColor, board);
-
-                // Restore original state
-                piece.position = originalPosition;
-                if (capturedPiece)
-                {
-                    capturedPiece->captured = false;
-                }
-
-                if (!stillInCheck)
-                {
-                    return false; // Found a valid move that escapes check
+                    return false; // Found a valid escape move
                 }
             }
         }
@@ -237,4 +300,18 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
 
     // No valid moves found that get the king out of check
     return true;
+}
+
+bool MoveValidator::IsMoveInValidMoves(const Vector2 &targetPosition, const std::vector<Vector2> &validMoves)
+{
+    for (const auto &move : validMoves)
+    {
+
+        if (std::abs(move.x - targetPosition.x) < 1.0f &&
+            std::abs(move.y - targetPosition.y) < 1.0f)
+        {
+            return true;
+        }
+    }
+    return false;
 }

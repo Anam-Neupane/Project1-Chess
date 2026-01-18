@@ -6,10 +6,11 @@
 #include "../hpp/MoveValidator.hpp"
 
 #include <raylib.h>
-#include <raymath.h>
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+
+using MoveUtils::Vector2Equals;
 
 namespace PieceMovement
 {
