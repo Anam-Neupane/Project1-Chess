@@ -221,8 +221,8 @@ bool MoveValidator::IsMoveValid(Piece &piece, Vector2 &newPosition, std::vector<
     // Checking if opponent's king is in check after move (for future check/checkmate detection)
     MoveSimulation::SimulateMove(const_cast<Piece &>(piece), newPosition, const_cast<std::vector<Piece> &>(pieces), board);
 
-    // For pawn promotion
-    if (isValid && piece.type == PAWN)
+    // For pawn promotion - only trigger when actually making the move, not for highlighting
+    if (isValid && piece.type == PAWN && !forHighlightOnly)
     {
         int newY = static_cast<int>((newPosition.y - boardPosition.y) / squareSize);
         int promotionRank = (piece.color == 0) ? 7 : 0;

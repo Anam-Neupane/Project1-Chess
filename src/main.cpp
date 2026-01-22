@@ -44,7 +44,7 @@ int main()
     int gameScreenHeight = screenHeight;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
-    InitWindow(screenWidth, screenHeight-150, "♟️ Chess");
+    InitWindow(screenWidth, screenHeight-155, "♟️ Chess");
 
     SetWindowMinSize(800, 600); // minimum window size
 

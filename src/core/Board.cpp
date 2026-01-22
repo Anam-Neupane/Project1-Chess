@@ -38,6 +38,8 @@ Board::Board(GameState *state) : gameState(state), dragging(false), draggedPiece
                                  playerturnPosition({boardPosition.x + squareSize * 8 + 93, boardPosition.y + squareSize * 4 - 29}),
                                  showValidMoves(true),            // Default on
                                  selectedPiecePosition({-1, -1}), // No piece selected
+                                 whiteCapturedCount(0),
+                                 blackCapturedCount(0),
                                  blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
                                  whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
 
@@ -456,10 +458,6 @@ void Board::CapturePiece(int capturedPieceIndex)
     int capturingColor = (pieces[capturedPieceIndex].color == 1) ? 0 : 1; // Opposite color captures
     gameState->addCapture(capturingColor, pieceValue);
 
-    // Calculate position in side panel based on capture counts
-    static int whiteCapturedCount = 0;
-    static int blackCapturedCount = 0;
-
     if (pieces[capturedPieceIndex].color == 1)
     { // White piece captured by black - show in top section of side panel
         int row = whiteCapturedCount / piecesPerRow;
@@ -729,15 +727,16 @@ void Board::UpdateDragging()
                                 pieces[draggedPieceIndex].position = newPosition;
 
                                 bool opponentInCheck = MoveValidator::IsKingInCheck(pieces,
-                                    pieces[draggedPieceIndex].color == 0 ? whiteKingPosition : blackKingPosition, 
-                                    !pieces[draggedPieceIndex].color,
-                                     *this);
+                                                                                    pieces[draggedPieceIndex].color == 0 ? whiteKingPosition : blackKingPosition,
+                                                                                    !pieces[draggedPieceIndex].color,
+                                                                                    *this);
 
-                                if(opponentInCheck){   
-                                    // 0 for black and 1 for white 
-                                    if (MoveValidator::IsCheckmate(pieces, 
-                                        gameState->getCurrentPlayer() == 0 ? 1 : 0, 
-                                        *this))
+                                if (opponentInCheck)
+                                {
+                                    // 0 for black and 1 for white
+                                    if (MoveValidator::IsCheckmate(pieces,
+                                                                   gameState->getCurrentPlayer() == 0 ? 1 : 0,
+                                                                   *this))
                                     {
 
                                         if (gameState->getCurrentPlayer() == 1)
@@ -812,6 +811,10 @@ void Board::Reset()
 
     // Reset GameState (scores, current player, board flip)
     gameState->reset();
+
+    // Reset captured pieces display counters
+    whiteCapturedCount = 0;
+    blackCapturedCount = 0;
 
     // Clear move highlights
     currentValidMoves.clear();

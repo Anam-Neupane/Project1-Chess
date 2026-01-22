@@ -70,6 +70,10 @@ private:
     Vector2 selectedPiecePosition;          // Position of piece (ORIGINAL position before drag)
     bool hasPieceSelected;                  // Is piece selected? for valid selection
     int selectedPieceType;                  // Type of selected piece (for en passant highlight)
+    
+    // For tracking captured pieces display positions
+    int whiteCapturedCount;
+    int blackCapturedCount;
 
     // Helper function for blur effect
     void DrawBlurredRectangle(float x, float y,float width, float height, Color baseColor, int blurLayers = 8);
