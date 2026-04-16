@@ -302,6 +302,65 @@ bool MoveValidator::IsCheckmate(std::vector<Piece> &pieces, int kingColor, Board
     return true;
 }
 
+bool MoveValidator::IsStatemate(std::vector<Piece> &pieces, int kingColor, Board &board)
+{
+    Vector2 kingPosition = (kingColor == 1) ? board.whiteKingPosition : board.blackKingPosition;
+
+    // If king Is in check, it's not stalemate (could be ckeckmate)
+    if (MoveValidator::IsKingInCheck(pieces, kingPosition, kingColor, board))
+    {
+        return false;
+    }
+
+    // Check if any piece has a legal move
+    for (auto &piece : pieces)
+    {
+        Vector2 originalPosition = piece.position;
+
+        if (piece.color == kingColor && !piece.captured)
+        {
+            // Generate potential moves based on piece type
+            std::vector<Vector2> potentialMoves;
+
+            switch (piece.type)
+            {
+            case PAWN:
+                potentialMoves = MoveGeneration::GetPawnMoves(piece, pieces, board);
+                break;
+            case ROOK:
+                potentialMoves = MoveGeneration::GetRookMoves(piece, pieces, board);
+                break;
+            case BISHOP:
+                potentialMoves = MoveGeneration::GetBishopMoves(piece, pieces, board);
+                break;
+            case QUEEN:
+                potentialMoves = MoveGeneration::GetQueenMoves(piece, pieces, board);
+                break;
+            case KNIGHT:
+                potentialMoves = MoveGeneration::GetKnightMoves(piece, pieces, board);
+                break;
+            case KING:
+                potentialMoves = MoveGeneration::GetKingMoves(piece, pieces, board);
+                break;
+            default:
+                break;
+            }
+
+            // Check if any move is legal (IsMoveLegal validates piece rules AND checks if king stays safe)
+            for (const Vector2 &move : potentialMoves)
+            {
+                if (MoveValidator::IsMoveLegal(piece, move, pieces, originalPosition, board))
+                {
+                    return false; // Found at least one legal move - not stalemate
+                }
+            }
+        }
+    }
+
+    // NO Legal Move and king not in check = stalemate
+    return true;
+}
+
 bool MoveValidator::IsMoveInValidMoves(const Vector2 &targetPosition, const std::vector<Vector2> &validMoves)
 {
     for (const auto &move : validMoves)

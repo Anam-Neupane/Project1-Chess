@@ -81,6 +81,7 @@ private:
 public:
     bool PawnPromo = false;
     bool Checkmate = false;
+    bool Stalemate = false;
 
     bool Cwhite = false;
 

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <unordered_set>
 
 // For Global variable
 float squareSize = 112.6;
@@ -31,6 +32,7 @@ int Board::GetPieceValue(int pieceType)
 }
 // Constructor
 Board::Board(GameState *state) : gameState(state), dragging(false), draggedPieceIndex(-1),
+                                 promotionTexture{},
                                  whiteScorePosition({boardPosition.x + 5, boardPosition.y + squareSize * 8 + 10}), // Initialization of the Score Position
                                  blackScorePosition({boardPosition.x + 5, boardPosition.y - 25}),
 
@@ -38,6 +40,8 @@ Board::Board(GameState *state) : gameState(state), dragging(false), draggedPiece
                                  playerturnPosition({boardPosition.x + squareSize * 8 + 93, boardPosition.y + squareSize * 4 - 29}),
                                  showValidMoves(true),            // Default on
                                  selectedPiecePosition({-1, -1}), // No piece selected
+                                 hasPieceSelected(false),
+                                 selectedPieceType(PAWN),
                                  whiteCapturedCount(0),
                                  blackCapturedCount(0),
                                  blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
@@ -81,9 +85,29 @@ void Board::DrawPlayer()
     }
 }
 
+static void UnloadPromotionTextures(Texture2D textures[], int count, 
+                                    const std:: unordered_set<unsigned int> &skipIds)
+{
+    for(int i = 0; i< count; i++)
+    {
+        if(textures[i].id != 0 && skipIds.find(textures[i].id) == skipIds.end())
+        {
+            UnloadTexture(textures[i]);
+        }
+        textures[i] = {0};
+    }
+}
+
 Board::~Board()
 {
+    std::unordered_set<unsigned int> pieceIds;
+    for(const auto &piece : pieces)
+    {
+        pieceIds.insert(piece.texture.id);
+
+    }
     UnloadPieces();
+    UnloadPromotionTextures(promotionTexture, 12, pieceIds);
 }
 
 void Board::LoadPieces()
@@ -241,9 +265,8 @@ void Board::ToggleShowValidMoves()
     showValidMoves = !showValidMoves;
     if (!showValidMoves)
     {
-        // Clear highlights when toggled off
-        currentValidMoves.clear();
-        selectedPiecePosition = {-1, -1};
+        // Clear highlight-related selection state when toggled off.
+        ClearSelection();
     }
 }
 
@@ -550,9 +573,14 @@ void Board::ExecuteEnPassant(Piece &capturingPawn, std::vector<Piece> &pieces, c
 
 void Board::UnloadPieces()
 {
+    std::unordered_set<unsigned int> unloadedIds;
     for (auto &piece : pieces)
     {
-        UnloadTexture(piece.texture);
+        if(piece.texture.id !=0 && unloadedIds.insert(piece.texture.id).second)
+        {
+           UnloadTexture(piece.texture);
+        }
+        piece.texture = {0};
     }
 }
 
@@ -726,16 +754,19 @@ void Board::UpdateDragging()
                             {
                                 pieces[draggedPieceIndex].position = newPosition;
 
+                                // After the current player moves, game-over checks must target the opponent.
+                                int opponentColor = 1 - gameState->getCurrentPlayer();
+
                                 bool opponentInCheck = MoveValidator::IsKingInCheck(pieces,
-                                                                                    pieces[draggedPieceIndex].color == 0 ? whiteKingPosition : blackKingPosition,
-                                                                                    !pieces[draggedPieceIndex].color,
+                                                                                    opponentColor == 1 ? whiteKingPosition : blackKingPosition,
+                                                                                    opponentColor,
                                                                                     *this);
 
                                 if (opponentInCheck)
                                 {
                                     // 0 for black and 1 for white
                                     if (MoveValidator::IsCheckmate(pieces,
-                                                                   gameState->getCurrentPlayer() == 0 ? 1 : 0,
+                                                                   opponentColor,
                                                                    *this))
                                     {
 
@@ -744,6 +775,16 @@ void Board::UpdateDragging()
                                             Cwhite = true;
                                         }
                                         Checkmate = true;
+                                        return;
+                                    }
+                                }
+
+                                if (!Checkmate)
+                                {
+                                    if (MoveValidator::IsStatemate(pieces, opponentColor, *this))
+                                    {
+                                        std::cout << "Stalemate! It's a draw" << std::endl;
+                                        Stalemate = true;
                                         return;
                                     }
                                 }
@@ -800,6 +841,7 @@ void Board::Reset()
     pieces.clear(); // Clear the pieces vector
 
     Checkmate = false;
+    Stalemate = false;
     PawnPromo = false;
     Cwhite = false;
     dragging = false;
@@ -807,18 +849,20 @@ void Board::Reset()
 
     // REset king position to starting position
     whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};
-    blackKingPosition = {boardPosition.y + 4 * squareSize, boardPosition.y};
+    blackKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y};
 
     // Reset GameState (scores, current player, board flip)
     gameState->reset();
+
+    // Reset shared lastMove state so en passant does not carry across games.
+    MoveSimulation::lastMove = std::make_tuple(Piece{}, Vector2{0.0f, 0.0f}, Vector2{0.0f, 0.0f});
 
     // Reset captured pieces display counters
     whiteCapturedCount = 0;
     blackCapturedCount = 0;
 
     // Clear move highlights
-    currentValidMoves.clear();
-    selectedPiecePosition = {-1, -1};
+    ClearSelection();
 
     LoadPieces();
 }

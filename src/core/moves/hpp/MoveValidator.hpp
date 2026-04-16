@@ -27,7 +27,10 @@ namespace MoveValidator {
                            const Vector2 &kingPosition, int kingColor, const Board &board);
 
     // Quick check if a move is in the pre-generated valid moves list
-     bool IsMoveInValidMoves(const Vector2& targetPosition, const std::vector<Vector2>& validMoves);
+    bool IsMoveInValidMoves(const Vector2& targetPosition, const std::vector<Vector2>& validMoves);
+
+    // Check if the given color is in stalemate (no legal moves, king not in check) 
+    bool IsStatemate(std::vector<Piece>& pieces, int kingColor, Board & board); 
 };
 
 #endif // MOVEVALID_HPP
