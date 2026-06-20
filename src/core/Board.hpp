@@ -85,6 +85,8 @@ public:
 
     bool Cwhite = false;
 
+    bool kingInCheck = false; // For king in check highlight 
+
     bool p1;
     Board(GameState *state);
     ~Board();
@@ -111,6 +113,7 @@ public:
     void ToggleShowValidMoves();    // Toggle the highlight features
     void DrawValidMoveHighlights(); // Draw the valid move indicators
     void ClearSelection();          // Clear selected piece and valid moves
+    void DrawCheckHighlight();      // Draws a crimson glow under the king when in ckeck 
 };
 
 #endif // BOARD_H

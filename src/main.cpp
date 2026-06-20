@@ -352,7 +352,7 @@ int main()
                     DrawTexture(boardTexture, 0, 55, WHITE); // Drawing the Board
 
                     B1.DrawLastMoveHightlight(); // Draw highlight for last move of piece  
-
+                    B1.DrawCheckHighlight(); // When King is in Check
                     B1.DrawValidMoveHighlights(); // Draw valid move highlight
 
                     // Side panel

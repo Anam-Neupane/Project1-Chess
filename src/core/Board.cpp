@@ -259,6 +259,21 @@ void Board::DrawLastMoveHightlight()
         hightlightColor);
 }
 
+void Board::DrawCheckHighlight()
+{
+    if(!kingInCheck) return ; 
+
+    int  currentColor = gameState->getCurrentPlayer();
+    Vector2 kingPos = (currentColor == 1) ? whiteKingPosition : blackKingPosition;
+    Vector2 drawPos = TransformPosition(kingPos); // Respects PVP board-flip 
+
+    DrawBlurredRectangle(
+        drawPos.x,
+        drawPos.y + 3.4f,
+        squareSize,squareSize,
+        {220, 20, 60, 140}); 
+}
+
 // For Piece Move Highlight
 void Board::ToggleShowValidMoves()
 {
@@ -796,6 +811,9 @@ void Board::UpdateDragging()
                                 // Switch player and flip board (handled by GameState)
                                 gameState->switchPlayer();
 
+                                // Cache whether the new current player's king is in check after switch. 
+                                kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
+
                                 ClearSelection(); // Clear the move highlight after move is made
                             }
                         }
@@ -844,6 +862,7 @@ void Board::Reset()
     Stalemate = false;
     PawnPromo = false;
     Cwhite = false;
+    kingInCheck = false; 
     dragging = false;
     draggedPieceIndex = -1;
 
