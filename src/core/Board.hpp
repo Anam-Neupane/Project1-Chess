@@ -82,6 +82,8 @@ public:
     bool PawnPromo = false;
     bool Checkmate = false;
     bool Stalemate = false;
+    bool Resigned = false;
+    int resignedPlayer = -1; // Color that resigned: 0 = black , 1 = white , -1 = nobody
 
     bool Cwhite = false;
 

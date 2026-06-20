@@ -74,23 +74,23 @@ void Board::DrawPlayer()
 {
     if (gameState->getCurrentPlayer() == 1)
     {
-        DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y - 6, 220, 80, BLACK);
-        DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y, 220, 68, WHITE);
-        DrawText("WHITE's \n \n  Turn", playerturnPosition.x + 20, playerturnPosition.y, 40, BLACK);
+
+        DrawRectangle(playerturnPosition.x - 35, playerturnPosition.y - 6, 300, 45, WHITE);
+        DrawText("WHITE's Turn", playerturnPosition.x - 30, playerturnPosition.y, 40, BLACK);
     }
     else
     {
-        DrawRectangle(playerturnPosition.x - 5, playerturnPosition.y - 6, 220, 80, BLACK);
-        DrawText("BLACK's \n \n  Turn", playerturnPosition.x + 20, playerturnPosition.y, 40, WHITE);
+        DrawRectangle(playerturnPosition.x - 35, playerturnPosition.y - 6, 300, 45, BLACK);
+        DrawText("BLACK's Turn", playerturnPosition.x - 30, playerturnPosition.y, 40, WHITE);
     }
 }
 
-static void UnloadPromotionTextures(Texture2D textures[], int count, 
-                                    const std:: unordered_set<unsigned int> &skipIds)
+static void UnloadPromotionTextures(Texture2D textures[], int count,
+                                    const std::unordered_set<unsigned int> &skipIds)
 {
-    for(int i = 0; i< count; i++)
+    for (int i = 0; i < count; i++)
     {
-        if(textures[i].id != 0 && skipIds.find(textures[i].id) == skipIds.end())
+        if (textures[i].id != 0 && skipIds.find(textures[i].id) == skipIds.end())
         {
             UnloadTexture(textures[i]);
         }
@@ -101,10 +101,9 @@ static void UnloadPromotionTextures(Texture2D textures[], int count,
 Board::~Board()
 {
     std::unordered_set<unsigned int> pieceIds;
-    for(const auto &piece : pieces)
+    for (const auto &piece : pieces)
     {
         pieceIds.insert(piece.texture.id);
-
     }
     UnloadPieces();
     UnloadPromotionTextures(promotionTexture, 12, pieceIds);
@@ -261,17 +260,18 @@ void Board::DrawLastMoveHightlight()
 
 void Board::DrawCheckHighlight()
 {
-    if(!kingInCheck) return ; 
+    if (!kingInCheck)
+        return;
 
-    int  currentColor = gameState->getCurrentPlayer();
+    int currentColor = gameState->getCurrentPlayer();
     Vector2 kingPos = (currentColor == 1) ? whiteKingPosition : blackKingPosition;
-    Vector2 drawPos = TransformPosition(kingPos); // Respects PVP board-flip 
+    Vector2 drawPos = TransformPosition(kingPos); // Respects PVP board-flip
 
     DrawBlurredRectangle(
         drawPos.x,
         drawPos.y + 3.4f,
-        squareSize,squareSize,
-        {220, 20, 60, 140}); 
+        squareSize, squareSize,
+        {220, 20, 60, 140});
 }
 
 // For Piece Move Highlight
@@ -591,9 +591,9 @@ void Board::UnloadPieces()
     std::unordered_set<unsigned int> unloadedIds;
     for (auto &piece : pieces)
     {
-        if(piece.texture.id !=0 && unloadedIds.insert(piece.texture.id).second)
+        if (piece.texture.id != 0 && unloadedIds.insert(piece.texture.id).second)
         {
-           UnloadTexture(piece.texture);
+            UnloadTexture(piece.texture);
         }
         piece.texture = {0};
     }
@@ -811,7 +811,7 @@ void Board::UpdateDragging()
                                 // Switch player and flip board (handled by GameState)
                                 gameState->switchPlayer();
 
-                                // Cache whether the new current player's king is in check after switch. 
+                                // Cache whether the new current player's king is in check after switch.
                                 kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
 
                                 ClearSelection(); // Clear the move highlight after move is made
@@ -862,9 +862,11 @@ void Board::Reset()
     Stalemate = false;
     PawnPromo = false;
     Cwhite = false;
-    kingInCheck = false; 
+    kingInCheck = false;
     dragging = false;
     draggedPieceIndex = -1;
+    Resigned = false;
+    resignedPlayer = -1;
 
     // REset king position to starting position
     whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};

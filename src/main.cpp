@@ -18,7 +18,6 @@ enum AppState
 
 bool Paused = false;
 
-
 int main()
 {
 
@@ -44,7 +43,7 @@ int main()
     int gameScreenHeight = screenHeight;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
-    InitWindow(screenWidth, screenHeight-155, "♟️ Chess");
+    InitWindow(screenWidth, screenHeight - 155, "♟️ Chess");
 
     SetWindowMinSize(800, 600); // minimum window size
 
@@ -65,7 +64,8 @@ int main()
     Button exitButton{"resource/Picture3.png", {0, 0}, 0.45};
     Button restartButton{"resource/restart.png", {0, 0}, 0.45};
     Button menuButton{"resource/mainmenu.png", {0, 0}, 0.45};
-    Button howtoplayButton{"resource/howto.png", {0,0},0.45};
+    Button howtoplayButton{"resource/howto.png", {0, 0}, 0.45};
+    Button resignButton{"resource/resign.png", {0, 0}, 0.35};
 
     bool exit = false;
 
@@ -132,13 +132,20 @@ int main()
             }
 
             // Toggle valid move highlights with 'M' key
-            if(IsKeyPressed(KEY_M) && !Paused && !B1.Checkmate && !B1.Stalemate)
+            if (IsKeyPressed(KEY_M) && !Paused && !B1.Checkmate && !B1.Stalemate)
             {
                 B1.ToggleShowValidMoves();
             }
+
+            if (resignButton.isPressed(mousePosition, mousePressed))
+            {
+                B1.Resigned = true;
+                B1.resignedPlayer = chessGameState.getCurrentPlayer();
+            }
         }
 
-        if((appState == GAME || appState == ENGINE_GAME) && (B1.Checkmate || B1.Stalemate) && !Paused) {
+        if ((appState == GAME || appState == ENGINE_GAME) && (B1.Checkmate || B1.Stalemate || B1.Resigned) && !Paused)
+        {
             int windowWidth = gameScreenWidth;
             int windowHeight = gameScreenHeight;
 
@@ -151,6 +158,14 @@ int main()
                 int winnerY = titleY + titileSize + 30;
                 buttonStartY = winnerY + winnerSize + 60;
             }
+            else if (B1.Resigned)
+            {
+                int titleSize = 80;
+                int titleY = windowHeight / 8;
+                int winnerSize = 50;
+                int winnerY = titleY + titleSize + 30;
+                buttonStartY = winnerY + winnerSize + 60;
+            }
             else
             {
                 int titileSize = 100;
@@ -158,22 +173,25 @@ int main()
             }
 
             Button::UpdateThreeButtonPositions(
-                restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY
-            );
+                restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY);
 
-            if(restartButton.isPressed(mousePosition, mousePressed)){
+            if (restartButton.isPressed(mousePosition, mousePressed))
+            {
                 B1.Reset();
             }
-            if (menuButton.isPressed(mousePosition, mousePressed)) {
+            if (menuButton.isPressed(mousePosition, mousePressed))
+            {
                 B1.Reset();
                 appState = MAIN_MENU;
             }
-            if(exitButton.isPressed(mousePosition,mousePressed)){
+            if (exitButton.isPressed(mousePosition, mousePressed))
+            {
                 exit = true;
             }
+
         }
 
-        if((appState == GAME || appState == ENGINE_GAME) && Paused)
+        if ((appState == GAME || appState == ENGINE_GAME) && Paused)
         {
             int windowWidth = gameScreenWidth;
             int windowHeight = gameScreenHeight;
@@ -182,24 +200,24 @@ int main()
             int buttonStartY = resumeTextY + 50;
 
             Button::UpdateThreeButtonPositions(
-                restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY
-            );
+                restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY);
 
-            if(restartButton.isPressed(mousePosition, mousePressed)){
+            if (restartButton.isPressed(mousePosition, mousePressed))
+            {
                 B1.Reset();
                 Paused = !Paused;
             }
-            if (menuButton.isPressed(mousePosition, mousePressed)) {
+            if (menuButton.isPressed(mousePosition, mousePressed))
+            {
                 B1.Reset();
                 appState = MAIN_MENU;
                 Paused = !Paused;
             }
-            if(exitButton.isPressed(mousePosition,mousePressed)){
+            if (exitButton.isPressed(mousePosition, mousePressed))
+            {
                 exit = true;
             }
         }
-
-
 
         // Draw everything to the render texture at fixed resolution
         BeginTextureMode(target);
@@ -246,16 +264,14 @@ int main()
                 DrawText(pausedText, pausedTextX, pausedTextY, 40, GREEN);
                 DrawText(resumeText, resumeTextX, resumeTextY, 40, GRAY);
 
-                int buttonStartY = resumeTextY + 50 ;
+                int buttonStartY = resumeTextY + 50;
                 Button::UpdateThreeButtonPositions(
-                    restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY
-                );
+                    restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY);
 
-                //Draw buttons
+                // Draw buttons
                 restartButton.DrawWithHover(mousePosition);
                 menuButton.DrawWithHover(mousePosition);
                 exitButton.DrawWithHover(mousePosition);
-
             }
 
             // Drawing game screen
@@ -286,77 +302,112 @@ int main()
                     int windowWidth = gameScreenWidth;   // Virtual window width
                     int windowHeight = gameScreenHeight; // Virtual window height
 
-                    //Overlay
-                    DrawRectangle(0,0, windowWidth, windowHeight, Fade(MAROON, 0.8f));
+                    // Overlay
+                    DrawRectangle(0, 0, windowWidth, windowHeight, Fade(MAROON, 0.8f));
 
-                    //Title-Centered
-                    const char * title = "CHECKMATE";
+                    // Title-Centered
+                    const char *title = "CHECKMATE";
                     int titileSize = 100;
                     int titleWidth = MeasureText(title, titileSize);
                     int titleX = (windowWidth - titleWidth) / 2;
-                    int titleY = windowHeight / 8; 
-                    DrawText ( title , titleX, titleY, titileSize, WHITE);
+                    int titleY = windowHeight / 8;
+                    DrawText(title, titleX, titleY, titileSize, WHITE);
 
-                    //Winner- centered
-                    const char* winner = B1.Cwhite? "White Wins!" : "Black Wins!";
+                    // Winner- centered
+                    const char *winner = B1.Cwhite ? "White Wins!" : "Black Wins!";
                     int winnerSize = 50;
                     int winnerWidth = MeasureText(winner, winnerSize);
                     int winnerX = (windowWidth - winnerWidth) / 2;
                     int winnerY = titleY + titileSize + 30;
                     DrawText(winner, winnerX, winnerY, winnerSize, BEIGE);
 
-                    //Position buttons
+                    // Position buttons
                     int buttonStartY = winnerY + winnerSize + 60;
                     Button::UpdateThreeButtonPositions(
-                        restartButton, menuButton,exitButton, windowWidth, windowHeight, buttonStartY
-                    );
+                        restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY);
 
-                    //Draw buttons
+                    // Draw buttons
                     restartButton.DrawWithHover(mousePosition);
                     menuButton.DrawWithHover(mousePosition);
                     exitButton.DrawWithHover(mousePosition);
                 }
-                
+
                 else if (B1.Stalemate)
                 {
                     int windowWidth = gameScreenWidth;   // Virtual window width
                     int windowHeight = gameScreenHeight; // Virtual window height
 
-                    //Overlay
-                    DrawRectangle(0,0, windowWidth, windowHeight, Fade(MAROON, 0.8f));
+                    // Overlay
+                    DrawRectangle(0, 0, windowWidth, windowHeight, Fade(MAROON, 0.8f));
 
-                    //Title-Centered
-                    const char * title = "DRAW";
+                    // Title-Centered
+                    const char *title = "DRAW";
                     int titileSize = 100;
                     int titleWidth = MeasureText(title, titileSize);
                     int titleX = (windowWidth - titleWidth) / 2;
-                    int titleY = windowHeight / 8; 
-                    DrawText ( title , titleX, titleY, titileSize, WHITE);
+                    int titleY = windowHeight / 8;
+                    DrawText(title, titleX, titleY, titileSize, WHITE);
 
-
-                    //Position buttons
+                    // Position buttons
                     int buttonStartY = titileSize + 180;
                     Button::UpdateThreeButtonPositions(
-                        restartButton, menuButton,exitButton, windowWidth, windowHeight, buttonStartY
-                    );
+                        restartButton, menuButton, exitButton, windowWidth, windowHeight, buttonStartY);
 
-                    //Draw buttons
+                    // Draw buttons
+                    restartButton.DrawWithHover(mousePosition);
+                    menuButton.DrawWithHover(mousePosition);
+                    exitButton.DrawWithHover(mousePosition);
+                }
+                
+                else if (B1.Resigned){
+                                        
+                    int windowWidth = gameScreenWidth;   // Virtual window width
+                    int windowHeight = gameScreenHeight; // Virtual window height
+
+                    // Overlay
+                    DrawRectangle(0, 0, windowWidth, windowHeight, Fade(DARKGRAY, 0.85f));
+
+                    // Title-Centered
+                    const char *title = "RESIGNATION";
+                    int titleSize = 80;
+                    int titleWidth = MeasureText(title, titleSize);
+                    int titleX = (windowWidth - titleWidth) / 2;
+                    int titleY = windowHeight / 8;
+                    DrawText(title, titleX, titleY, titleSize, RED);
+
+                    // Winner
+                    const char* winner = (B1.resignedPlayer == 1)? "Black Wins!" : "White Wins!";
+                    int winnerSize = 50;
+                    int winnerWidth = MeasureText(winner, winnerSize);
+                    int winnerX = (windowWidth - winnerWidth) / 2;
+                    int winnerY = titleY + titleSize + 30;
+                    DrawText(winner, winnerX, winnerY, winnerSize, BEIGE);
+                    
+                    // Buttons
+                    int buttonStartY = winnerY + winnerSize + 60;
+                    Button::UpdateThreeButtonPositions(restartButton,
+                         menuButton,
+                         exitButton,
+                         windowWidth,
+                         windowHeight,
+                         buttonStartY);
                     restartButton.DrawWithHover(mousePosition);
                     menuButton.DrawWithHover(mousePosition);
                     exitButton.DrawWithHover(mousePosition);
                 }
 
-
                 else
                 {
                     DrawTexture(boardTexture, 0, 55, WHITE); // Drawing the Board
 
-                    B1.DrawLastMoveHightlight(); // Draw highlight for last move of piece  
-                    B1.DrawCheckHighlight(); // When King is in Check
+                    B1.DrawLastMoveHightlight();  // Draw highlight for last move of piece
+                    B1.DrawCheckHighlight();      // When King is in Check
                     B1.DrawValidMoveHighlights(); // Draw valid move highlight
 
                     // Side panel
                     DrawRectangle(914, 55, sidePanelWidth + 180, 910, BROWN);
+                    resignButton.SetPosition({1030.0f, 520.0f});
+                    resignButton.DrawWithHover(mousePosition);
 
                     B1.UpdateDragging();
                     B1.DrawPlayer();
