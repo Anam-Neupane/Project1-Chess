@@ -6,6 +6,7 @@
 #include "Constants.hpp"
 #include <raylib.h>
 #include <vector>
+#include "MoveHistory.hpp"
 
 class Board
 {
@@ -20,6 +21,7 @@ private:
     Vector2 originalPosition;
     Vector2 offset;
     Texture2D promotionTexture[12];
+    MoveHistory moveHistory; // Stores full game transcript. 
 
     // Helper methods for board rotation
     Vector2 TransformPosition(Vector2 pos)
@@ -89,6 +91,8 @@ public:
 
     bool kingInCheck = false; // For king in check highlight 
 
+    bool showMoveHistory = true; // toggle for the key-H
+
     bool p1;
     Board(GameState *state);
     ~Board();
@@ -116,6 +120,8 @@ public:
     void DrawValidMoveHighlights(); // Draw the valid move indicators
     void ClearSelection();          // Clear selected piece and valid moves
     void DrawCheckHighlight();      // Draws a crimson glow under the king when in ckeck 
+
+    void DrawMoveHistory(); // renders the side panel 
 };
 
 #endif // BOARD_H

@@ -452,6 +452,20 @@ void Board::DrawPromotionMenu(Vector2 position, int color)
     HandlePawnPromotion(color, position);
 }
 
+void Board::DrawMoveHistory()
+{
+    if (!showMoveHistory)
+        return;
+
+    // Match the full right-side panel area.
+    float panelX = 914.0f;
+    float panelY = 55.0f;
+    float panelWidth = 380.0f;
+    float panelHeight = 910.0f;
+
+    moveHistory.DrawPanel(panelX, panelY, panelWidth, panelHeight);
+}
+
 void Board::HandlePawnPromotion(int color, Vector2 position)
 {
 
@@ -732,6 +746,7 @@ void Board::UpdateDragging()
                         // Checking if the move is valid
                         if (moveIsValid)
                         {
+                            const std::vector<Piece> piecesBeforeMove = pieces;
                             pieces[draggedPieceIndex].position = newPosition;
 
                             // Mark rook as moved AFTER successful move
@@ -753,14 +768,28 @@ void Board::UpdateDragging()
                             }
 
                             // For capturing - simplified since move is already validated
+                            bool wasCapture = false; // for notation use
+                            bool wasEnPassant = false;
                             bool validCapture = true;
                             for (std::size_t i = 0; i < pieces.size(); ++i)
                             {
                                 if (pieces[i].position.x == newPosition.x && pieces[i].position.y == newPosition.y && pieces[i].color != pieces[draggedPieceIndex].color)
                                 {
                                     // Move was pre-validated, capture is safe
+                                    wasCapture = true; // for notation use
                                     this->CapturePiece(i);
                                     break;
+                                }
+                            }
+
+                            if (!wasCapture && pieces[draggedPieceIndex].type == PAWN)
+                            {
+                                const int fromX = static_cast<int>(std::round((originalPosition.x - boardPosition.x) / squareSize));
+                                const int toX = static_cast<int>(std::round((newPosition.x - boardPosition.x) / squareSize));
+                                if (std::abs(toX - fromX) == 1)
+                                {
+                                    wasEnPassant = true;
+                                    wasCapture = true;
                                 }
                             }
 
@@ -802,6 +831,94 @@ void Board::UpdateDragging()
                                         Stalemate = true;
                                         return;
                                     }
+                                }
+
+                                // This records moves after it happened and before the player is changed
+                                {
+                                    MoveRecord record;
+                                    record.moveNumber = static_cast<int>(moveHistory.GetMoves().size()) / 2 + 1;
+                                    record.pieceType = static_cast<PieceType>(pieces[draggedPieceIndex].type);
+                                    record.pieceColor = pieces[draggedPieceIndex].color;
+                                    record.from = originalPosition;
+                                    record.to = newPosition;
+
+                                    // Added later SAN disambiguation for same-type pieces that can also reach the target square.
+                                    if (record.pieceType != PAWN)
+                                    {
+                                        bool needsDisambiguation = false;
+                                        bool sameFileConflict = false;
+                                        bool sameRankConflict = false;
+
+                                        for (std::size_t i = 0; i < piecesBeforeMove.size(); ++i)
+                                        {
+                                            if (static_cast<int>(i) == draggedPieceIndex)
+                                            {
+                                                continue;
+                                            }
+
+                                            const Piece &candidate = piecesBeforeMove[i];
+                                            if (candidate.captured || candidate.color != record.pieceColor || candidate.type != pieces[draggedPieceIndex].type)
+                                            {
+                                                continue;
+                                            }
+
+                                            if (MoveValidator::IsMoveLegal(candidate, newPosition, piecesBeforeMove, candidate.position, *this))
+                                            {
+                                                needsDisambiguation = true;
+
+                                                const int candidateFile = static_cast<int>(std::round((candidate.position.x - boardPosition.x) / squareSize));
+                                                const int candidateRank = 7 - static_cast<int>(std::round((candidate.position.y - boardPosition.y) / squareSize));
+                                                const int sourceFile = static_cast<int>(std::round((originalPosition.x - boardPosition.x) / squareSize));
+                                                const int sourceRank = 7 - static_cast<int>(std::round((originalPosition.y - boardPosition.y) / squareSize));
+
+                                                if (candidateFile == sourceFile)
+                                                {
+                                                    sameFileConflict = true;
+                                                }
+                                                if (candidateRank == sourceRank)
+                                                {
+                                                    sameRankConflict = true;
+                                                }
+                                            }
+                                        }
+
+                                        if (needsDisambiguation)
+                                        {
+                                            const int sourceFile = static_cast<int>(std::round((originalPosition.x - boardPosition.x) / squareSize));
+                                            const int sourceRank = 7 - static_cast<int>(std::round((originalPosition.y - boardPosition.y) / squareSize));
+
+                                            if (!sameFileConflict)
+                                            {
+                                                record.disambiguation = std::string(1, static_cast<char>('a' + sourceFile));
+                                            }
+                                            else if (!sameRankConflict)
+                                            {
+                                                record.disambiguation = std::string(1, static_cast<char>('1' + sourceRank));
+                                            }
+                                            else
+                                            {
+                                                record.disambiguation = std::string(1, static_cast<char>('a' + sourceFile)) +
+                                                                         std::string(1, static_cast<char>('1' + sourceRank));
+                                            }
+                                        }
+                                    }
+
+                                    record.isCapture = wasCapture;
+                                    record.isEnPassant = wasEnPassant;
+                                    record.isCheck = opponentInCheck && !Checkmate;
+
+                                    // Castle detection
+                                    if (pieces[draggedPieceIndex].type == KING)
+                                    {
+                                        float dx = std::abs(newPosition.x - originalPosition.x);
+                                        if (dx > squareSize * 1.5f)
+                                        {
+                                            record.isCastleKing = (newPosition.x > originalPosition.x);  // e1 -> g1 or e8 -> g8
+                                            record.isCastleQueen = (newPosition.x < originalPosition.x); // e1 -> c1 or e8 _> c8
+                                        }
+                                    }
+
+                                    moveHistory.AddMove(record);
                                 }
 
                                 // Damn I worked Hard in this function
@@ -867,6 +984,7 @@ void Board::Reset()
     draggedPieceIndex = -1;
     Resigned = false;
     resignedPlayer = -1;
+    showMoveHistory = true;
 
     // REset king position to starting position
     whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};
@@ -881,6 +999,8 @@ void Board::Reset()
     // Reset captured pieces display counters
     whiteCapturedCount = 0;
     blackCapturedCount = 0;
+
+    moveHistory.Clear();
 
     // Clear move highlights
     ClearSelection();

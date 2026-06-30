@@ -137,6 +137,12 @@ int main()
                 B1.ToggleShowValidMoves();
             }
 
+            //  The trigger key can be changed later 
+            if (IsKeyPressed(KEY_H) && !Paused && !B1.Checkmate && !B1.Stalemate)
+            {
+                B1.showMoveHistory = !B1.showMoveHistory;
+            }
+
             if (resignButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Resigned = true;
@@ -412,6 +418,7 @@ int main()
                     B1.UpdateDragging();
                     B1.DrawPlayer();
                     B1.DrawPieces();
+                    B1.DrawMoveHistory();
                 }
             }
         }
