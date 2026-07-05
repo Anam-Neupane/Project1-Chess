@@ -8,6 +8,8 @@
 #include <vector>
 #include "MoveHistory.hpp"
 
+struct EngineMove; // Forward declaration -- full definition in EngineMove.hpp
+
 class Board
 {
 private:
@@ -26,7 +28,7 @@ private:
     // Helper methods for board rotation
     Vector2 TransformPosition(Vector2 pos)
     {
-        if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped())
+        if (gameState->isBoardFlipped())
         {
             // Flip position: (0,0) become (7,7), and so on.
             return {
@@ -38,7 +40,7 @@ private:
 
     Vector2 TransformMouse(Vector2 mousePos)
     {
-        if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped())
+        if (gameState->isBoardFlipped())
         {
             return {
                 (8 * squareSize) - mousePos.x,
@@ -76,6 +78,8 @@ private:
     // For tracking captured pieces display positions
     int whiteCapturedCount;
     int blackCapturedCount;
+
+    std::string posToUCI(Vector2 pos) const; // Converts pixel position to UCI square "e4"
 
     // Helper function for blur effect
     void DrawBlurredRectangle(float x, float y,float width, float height, Color baseColor, int blurLayers = 8);
@@ -122,6 +126,11 @@ public:
     void DrawCheckHighlight();      // Draws a crimson glow under the king when in ckeck 
 
     void DrawMoveHistory(); // renders the side panel 
+    
+    bool ApplyEngineMove(const EngineMove& move); // Executes the engine move
+    std::vector<std::string> uciMoveList;       // all MOves in UCI format: "e2e4", "e7e5"
+    
+
 };
 
 #endif // BOARD_H

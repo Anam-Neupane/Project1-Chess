@@ -2,15 +2,29 @@
 #include "moves/hpp/MoveValidator.hpp"
 #include "moves/hpp/MoveGeneration.hpp"
 #include "moves/hpp/MoveSimulation.hpp"
+#include "../engine/EngineMove.hpp"
 #include <raymath.h>
 #include <iostream>
 #include <string>
 #include <cmath>
 #include <unordered_set>
+#include <algorithm> 
 
 // For Global variable
 float squareSize = 112.6;
 Vector2 boardPosition = {0, 55};
+
+std::string Board::posToUCI(Vector2 pos) const
+{
+    // Reverse of the pixel-to-board formula: col = round(x - boardx) / size) 
+    int col = static_cast<int>(std::round((pos.x - boardPosition.x) / squareSize));
+    int row = static_cast<int>(std::round((pos.y - boardPosition.y) / squareSize));
+
+    char fileChar = static_cast<char>('a' + col); 
+    char rankChar = static_cast<char>('8' - row); 
+
+    return std::string(1, fileChar) + std::string(1, rankChar);
+}
 
 int Board::GetPieceValue(int pieceType)
 {
@@ -44,9 +58,9 @@ Board::Board(GameState *state) : gameState(state), dragging(false), draggedPiece
                                  selectedPieceType(PAWN),
                                  whiteCapturedCount(0),
                                  blackCapturedCount(0),
+                                 p1(1),
                                  blackKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y}),
                                  whiteKingPosition({boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize})
-
 {
 }
 
@@ -56,7 +70,7 @@ void Board::DrawScores()
     std::string blackScoreText = "Black : " + std::to_string(gameState->getBlackScore());
 
     // Swap score positions when board is flipped
-    if (gameState->getGameMode() == GameMode::PVP_LOCAL && gameState->isBoardFlipped())
+    if (gameState->isBoardFlipped())
     {
         // White score at top, Black score at bottom (flipped)
         DrawText(whiteScoreText.c_str(), blackScorePosition.x, blackScorePosition.y, 30, WHITE);
@@ -96,6 +110,19 @@ static void UnloadPromotionTextures(Texture2D textures[], int count,
         }
         textures[i] = {0};
     }
+}
+
+static int ResolvePromotionColor(const std::vector<Piece> &pieces, const Vector2 &promotionPosition, int fallbackColor)
+{
+    for (const auto &piece : pieces)
+    {
+        if (!piece.captured && piece.type == PAWN && Vector2Equals(piece.position, promotionPosition))
+        {
+            return piece.color;
+        }
+    }
+
+    return fallbackColor;
 }
 
 Board::~Board()
@@ -433,6 +460,8 @@ void Board::DrawBlurredRectangle(float x, float y, float width, float height, Co
 
 void Board::DrawPromotionMenu(Vector2 position, int color)
 {
+    color = ResolvePromotionColor(pieces, promotionPosition, color);
+
     // Drawing promotion menu background and border
     DrawRectangleLines(position.x, position.y, 4 * squareSize, squareSize, WHITE);
 
@@ -468,6 +497,7 @@ void Board::DrawMoveHistory()
 
 void Board::HandlePawnPromotion(int color, Vector2 position)
 {
+    color = ResolvePromotionColor(pieces, promotionPosition, color);
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
@@ -486,6 +516,44 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
                         // Replacing pawn with the selected piece
                         piece.type = static_cast<PieceType>(i + 1); // i + 1 because 0: Rook, 1: Knight, 2: Bishop, 3: Queen
                         piece.texture = promotionTexture[(color == 0 ? i : i + 6)];
+                        
+                        // Append the promotion character to the UCI string for Stockfish
+                        if (!uciMoveList.empty()) {
+                            static constexpr char promoChars[] = {'r', 'n', 'b', 'q'};
+                            uciMoveList.back() += promoChars[i];
+                        }
+                        
+                        // Update move history with the promoted piece
+                        if (!moveHistory.GetMoves().empty()) {
+                            moveHistory.GetLastMoveMutable().promotedTo = static_cast<PieceType>(piece.type);
+                        }
+
+                        // Re-evaluate Check/Checkmate/Stalemate because the newly promoted piece might cause them.
+                        // The turn was already switched in UpdateDragging, so the opponent is now the current player.
+                        int opponentColor = gameState->getCurrentPlayer();
+                        Vector2 opponentKingPos = (opponentColor == 1) ? whiteKingPosition : blackKingPosition;
+                        bool opponentInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPos, opponentColor, *this);
+                        
+                        if (opponentInCheck)
+                        {
+                            if (MoveValidator::IsCheckmate(pieces, opponentColor, *this))
+                            {
+                                if (opponentColor == 0) // White made the promotion and checkmated Black
+                                    Cwhite = true;
+                                Checkmate = true;
+                            }
+                        }
+                        
+                        if (!Checkmate && MoveValidator::IsStatemate(pieces, opponentColor, *this))
+                        {
+                            Stalemate = true;
+                        }
+                        
+                        kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
+                        if (!moveHistory.GetMoves().empty()) {
+                            moveHistory.GetLastMoveMutable().isCheck = opponentInCheck && !Checkmate;
+                        }
+                        
                         break;
                     }
                 }
@@ -638,6 +706,14 @@ void Board::UpdateDragging()
 
             if (CheckCollisionPointRec(mousePos, pieceRect))
             {
+                // Only allow picking up pieces that belong to the current player.
+                // This prevents the player from visually dragging opponent pieces
+                if (pieces[i].color != gameState->getCurrentPlayer())
+                {
+                    ClearSelection();
+                    break;
+                }
+
                 dragging = true;
                 draggedPieceIndex = i;
                 offset = Vector2Subtract(mousePos, pieces[i].position);
@@ -809,7 +885,7 @@ void Board::UpdateDragging()
                                 if (opponentInCheck)
                                 {
                                     // 0 for black and 1 for white
-                                    if (MoveValidator::IsCheckmate(pieces,
+                                    if (!PawnPromo && MoveValidator::IsCheckmate(pieces,
                                                                    opponentColor,
                                                                    *this))
                                     {
@@ -823,7 +899,7 @@ void Board::UpdateDragging()
                                     }
                                 }
 
-                                if (!Checkmate)
+                                if (!Checkmate && !PawnPromo)
                                 {
                                     if (MoveValidator::IsStatemate(pieces, opponentColor, *this))
                                     {
@@ -921,6 +997,9 @@ void Board::UpdateDragging()
                                     moveHistory.AddMove(record);
                                 }
 
+                                // For recording Uci moves in updatedragging
+                                uciMoveList.push_back(posToUCI(originalPosition) + posToUCI(newPosition));
+
                                 // Damn I worked Hard in this function
                                 // Store the Last move for highlighting
                                 gameState->setLastMove(originalPosition, newPosition);
@@ -968,10 +1047,156 @@ void Board::UpdateDragging()
     }
 }
 
+ 
+bool Board::ApplyEngineMove(const EngineMove& move) 
+{
+
+    if(!move.isValid) return false; 
+
+    // Finding the piece at move.from 
+    int pieceIndex = -1; 
+    for ( int i = 0; i < static_cast<int>(pieces.size()); i++) 
+    {
+
+        if(!pieces[i].captured
+            && std::abs(pieces[i].position.x - move.from.x) < 1.0f
+            && std::abs(pieces[i].position.y - move.from.y) < 1.0f)
+        {
+            pieceIndex = i;
+            break;
+        }
+    }
+
+    if (pieceIndex == -1) return false; // NO piece found at that square 
+
+    Vector2 originalPos = pieces[pieceIndex].position; 
+    Vector2 newPos = move.to; 
+
+    // Validate via existing pipeline (also executes castling / enpassant) 
+    if(!MoveValidator::IsMoveValid(pieces[pieceIndex], newPos, pieces, originalPos, *this))
+        return false;
+
+    // For engine moves the UI must never appear – the engine
+    // handles its own promotion below, so we clear the flag unconditionally here.
+    PawnPromo = false;
+
+    pieces[pieceIndex].position = newPos;
+
+    if (pieces[pieceIndex].type == PAWN)
+    {
+        int promotionRank = (pieces[pieceIndex].color == 0) ? 7 : 0;
+        
+        int newY = static_cast<int>(roundf((newPos.y - boardPosition.y) / squareSize));
+        if (newY == promotionRank)
+        {
+            int promotedType = move.promotionPiece;
+            if (promotedType < ROOK || promotedType > QUEEN)
+            {
+                promotedType = QUEEN;
+            }
+
+            pieces[pieceIndex].type = promotedType;
+            pieces[pieceIndex].texture = promotionTexture[(pieces[pieceIndex].color == 0)
+                                                             ? (promotedType - 1)
+                                                             : (promotedType - 1 + 6)];
+            PawnPromo = false;
+        }
+    }
+
+    // Track king positions
+    if(pieces[pieceIndex].type == KING)
+    {
+        if(pieces[pieceIndex].color == 0)
+            blackKingPosition = newPos;
+        else
+            whiteKingPosition = newPos;
+    }
+
+    if(pieces[pieceIndex].type == ROOK)
+        pieces[pieceIndex].hasMoved = true;
+
+    // Handle captures
+    bool wasCapture = false;
+
+    for (int i = 0; i < static_cast<int>(pieces.size()); i++)
+    {
+        if(!pieces[i].captured
+            && std::abs(pieces[i].position.x - newPos.x) < 1.0f
+            && std::abs(pieces[i].position.y - newPos.y) < 1.0f
+            && pieces[i].color != pieces[pieceIndex].color)
+        {
+            wasCapture = true;
+            CapturePiece(i);
+            break;
+        }
+    }
+
+    uciMoveList.push_back(posToUCI(originalPos) + posToUCI(newPos));
+
+    // If the engine promoted a pawn, append the piece character so Stockfish
+    // receives a valid UCI history (e.g. "a2a1q" not just "a2a1").
+    // ROOK=1:'r', KNIGHT=2:'n', BISHOP=3:'b', QUEEN=4:'q'
+    if (move.promotionPiece >= ROOK && move.promotionPiece <= QUEEN)
+    {
+        static constexpr char promoChars[] = {'\0', 'r', 'n', 'b', 'q'};
+        uciMoveList.back() += promoChars[move.promotionPiece];
+    }
+
+    // Check / checkmate / stalemate detection
+    int opponentColor = 1 - gameState->getCurrentPlayer();
+    Vector2 opponentKingPos = (opponentColor == 1 ) ? whiteKingPosition : blackKingPosition; 
+    bool opponentInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPos, opponentColor, *this); 
+    
+    if (opponentInCheck) 
+    {
+        if(MoveValidator::IsCheckmate(pieces, opponentColor, *this))
+        {
+            if(gameState->getCurrentPlayer() == 1)
+                Cwhite = true; 
+            Checkmate = true; 
+        }
+    }
+
+    if (!Checkmate && MoveValidator::IsStatemate(pieces, opponentColor, *this))
+    {
+        Stalemate = true; 
+    }
+
+    // Build and store MoveRecord 
+    MoveRecord record; 
+
+    record.moveNumber = static_cast<int>(moveHistory.GetMoves().size()) / 2 + 1; 
+    record.pieceType = static_cast<PieceType>(pieces[pieceIndex].type);
+    record.pieceColor = pieces[pieceIndex].color; 
+    record.from = originalPos; 
+    record.to = newPos; 
+    record.isCapture = wasCapture; 
+    record.isCheck = opponentInCheck && !Checkmate; 
+    
+    if(pieces[pieceIndex].type == KING)
+    {
+        float dx = std::abs(newPos.x - originalPos.x); 
+        if(dx > squareSize * 1.5f) 
+        {
+            record.isCastleKing = (newPos.x > originalPos.x);
+            record.isCastleQueen = (newPos.x < originalPos.x); 
+        }
+    }
+    moveHistory.AddMove(record); 
+
+    gameState->setLastMove(originalPos, newPos); 
+    gameState->switchPlayer();
+    kingInCheck = opponentInCheck && !Checkmate && !Stalemate; 
+
+    return true; 
+}
+
+
 void Board::Reset()
 {
     // First unload old pieces texture/ it is inefficient but safe
     UnloadPieces();
+    UnloadPromotionTextures(promotionTexture, 12, {});
 
     pieces.clear(); // Clear the pieces vector
 
@@ -985,6 +1210,7 @@ void Board::Reset()
     Resigned = false;
     resignedPlayer = -1;
     showMoveHistory = true;
+    promotionPosition = {0, 0};
 
     // REset king position to starting position
     whiteKingPosition = {boardPosition.x + 4 * squareSize, boardPosition.y + 7 * squareSize};
@@ -999,11 +1225,15 @@ void Board::Reset()
     // Reset captured pieces display counters
     whiteCapturedCount = 0;
     blackCapturedCount = 0;
+    p1 = 1;
 
     moveHistory.Clear();
+
+    uciMoveList.clear(); 
 
     // Clear move highlights
     ClearSelection();
 
     LoadPieces();
+    LoadPromotionTexture();
 }

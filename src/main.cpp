@@ -1,9 +1,11 @@
 #include "ui/button.hpp"
 #include "core/Board.hpp"
 #include "core/GameState.hpp"
-#include <raylib.h>
 #include <iostream>
+#include <raylib.h>
 #include "raymath.h"
+#include "engine/StockfishEngine.hpp"
+#include "ui/slider.hpp"
 // #include <cstddef>
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -17,6 +19,8 @@ enum AppState
 };
 
 bool Paused = false;
+
+int engineColor = 0; // 0 = black, 1 = white
 
 int main()
 {
@@ -66,6 +70,9 @@ int main()
     Button menuButton{"resource/mainmenu.png", {0, 0}, 0.45};
     Button howtoplayButton{"resource/howto.png", {0, 0}, 0.45};
     Button resignButton{"resource/resign.png", {0, 0}, 0.35};
+    Button whitePlayer{"resource/white.png", {0, 0}, 0.35};
+    Button blackPlayer{"resource/black.png", {0, 0}, 0.35};
+    Slider engineDifficultySlider({0.0f, 0.0f}, 360.0f, 1, 20, 10);
 
     bool exit = false;
 
@@ -79,6 +86,61 @@ int main()
 
     // Current app state (menu navigation)
     AppState appState = MAIN_MENU;
+
+    StockfishEngine *engine = nullptr;
+    bool engineLaunchFailed = false;
+    bool enginePlayerselect = false;
+    std::string engineLaunchErrorMessage;
+    std::size_t lastObservedUciMoveCount = 0;
+    bool deferEngineMoveOneFrame = false;
+
+    auto shutdownEngine = [&]()
+    {
+        if (engine != nullptr)
+        {
+            engine->shutdown();
+            delete engine;
+            engine = nullptr;
+        }
+    };
+
+    auto launchEngineGame = [&](int playerColor)
+    {
+        engineColor = 1 - playerColor;
+
+        shutdownEngine();
+        engineLaunchFailed = false;
+        engineLaunchErrorMessage.clear();
+        enginePlayerselect = false;
+
+        chessGameState.setGameMode(GameMode::VS_ENGINE);
+        if (playerColor == 0)
+        {
+            chessGameState.flipBoard();
+        }
+
+        engine = new StockfishEngine();
+        if (!engine->init())
+        {
+            std::cerr << "Failed to start Stockfish. Is stockfish.exe in project root?" << std::endl;
+            shutdownEngine();
+            chessGameState.setGameMode(GameMode::PVP_LOCAL);
+            appState = MAIN_MENU;
+            engineLaunchFailed = true;
+            engineLaunchErrorMessage = "Engine unavailable. You can still play local multiplayer or exit from the menu.";
+            return;
+        }
+
+        engine->setDifficulty(engineDifficultySlider.GetValue());
+        engine->newGame();
+        appState = ENGINE_GAME;
+    };
+
+    auto drawHint = [&](const char *hintText, int centerX, int y, int fontSize, Color tint)
+    {
+        int hintWidth = MeasureText(hintText, fontSize);
+        DrawText(hintText, centerX - hintWidth / 2, y, fontSize, tint);
+    };
 
     while (!WindowShouldClose() && exit == false)
     {
@@ -97,30 +159,103 @@ int main()
         // Now GetMousePosition() automatically returns virtual game coordinates
         Vector2 mousePosition = GetMousePosition();
         bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        bool anyMousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
+                               IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) ||
+                               IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE);
+
+        if (B1.uciMoveList.size() != lastObservedUciMoveCount)
+        {
+            lastObservedUciMoveCount = B1.uciMoveList.size();
+            deferEngineMoveOneFrame = true;
+        }
 
         // Handle input based on the current app state
         if (appState == MAIN_MENU)
         {
-            // Keep clickable rects in sync before processing clicks.
-            Button::UpdateMenuButtonPosition(startButton, engineButton, exitButton, gameScreenWidth, gameScreenHeight);
+            bool engineLaunchAttemptedThisFrame = false;
+            bool suppressMenuButtons = false;
+            bool sliderConsumedThisFrame = false;
 
-            if (startButton.isPressed(mousePosition, mousePressed))
+            if (enginePlayerselect)
             {
-                std::cout << "Starting of 1v1 Game" << std::endl;
-                chessGameState.setGameMode(GameMode::PVP_LOCAL);
-                appState = GAME; // Switching to the game state
+                Vector2 whiteSize = whitePlayer.GetSize();
+                Vector2 blackSize = blackPlayer.GetSize();
+                int gap = 50;
+                float buttonsY = 420.0f;
+                float totalWidth = whiteSize.x + gap + blackSize.x;
+                float startX = (gameScreenWidth - totalWidth) / 2.0f;
+                float sliderX = (gameScreenWidth - 360.0f) / 2.0f;
+                float sliderY = 377.0f;
+
+                engineDifficultySlider.SetPosition({sliderX, sliderY});
+                sliderConsumedThisFrame = engineDifficultySlider.HandleInput(mousePosition,
+                                                                            mousePressed,
+                                                                            IsMouseButtonReleased(MOUSE_BUTTON_LEFT));
+
+                whitePlayer.SetPosition({startX, buttonsY});
+                blackPlayer.SetPosition({startX + whiteSize.x + gap, buttonsY});
+
+                bool clickedWhite = whitePlayer.isPressed(mousePosition, mousePressed);
+                bool clickedBlack = blackPlayer.isPressed(mousePosition, mousePressed);
+
+                if (clickedWhite)
+                {
+                    std::cout << "Starting Engine Game as White" << std::endl;
+                    engineLaunchAttemptedThisFrame = true;
+                    suppressMenuButtons = true;
+                    launchEngineGame(1);
+                }
+                else if (clickedBlack)
+                {
+                    std::cout << "Starting Engine Game as Black" << std::endl;
+                    engineLaunchAttemptedThisFrame = true;
+                    suppressMenuButtons = true;
+                    launchEngineGame(0);
+                }
+                else if (anyMousePressed && !sliderConsumedThisFrame)
+                {
+                    enginePlayerselect = false;
+                    suppressMenuButtons = true;
+                }
             }
 
-            if (engineButton.isPressed(mousePosition, mousePressed))
+            bool dismissEngineError = engineLaunchFailed &&
+                                      !engineLaunchAttemptedThisFrame &&
+                                      (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
+                                       IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) ||
+                                       IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE));
+
+            if (dismissEngineError)
             {
-                std::cout << "Starting Engine Game" << std::endl;
-                chessGameState.setGameMode(GameMode::VS_ENGINE);
-                appState = ENGINE_GAME; // Switching to the game state
+                engineLaunchFailed = false;
+                engineLaunchErrorMessage.clear();
+                suppressMenuButtons = true;
             }
 
-            if (exitButton.isPressed(mousePosition, mousePressed))
+            if (!engineLaunchFailed && !enginePlayerselect && !suppressMenuButtons && !engineLaunchAttemptedThisFrame)
             {
-                exit = true;
+                // Keep clickable rects in sync before processing clicks.
+                Button::UpdateMenuButtonPosition(startButton, engineButton, exitButton, gameScreenWidth, gameScreenHeight);
+
+                if (startButton.isPressed(mousePosition, mousePressed))
+                {
+                    std::cout << "Starting of 1v1 Game" << std::endl;
+                    chessGameState.setGameMode(GameMode::PVP_LOCAL);
+                    appState = GAME; // Switching to the game state
+                }
+
+                if (engineButton.isPressed(mousePosition, mousePressed))
+                {
+                    std::cout << "Choosing engine side" << std::endl;
+                    enginePlayerselect = true;
+                    engineLaunchFailed = false;
+                    engineLaunchErrorMessage.clear();
+                }
+
+                if (exitButton.isPressed(mousePosition, mousePressed))
+                {
+                    exit = true;
+                }
             }
         }
 
@@ -137,7 +272,7 @@ int main()
                 B1.ToggleShowValidMoves();
             }
 
-            //  The trigger key can be changed later 
+            //  The trigger key can be changed later
             if (IsKeyPressed(KEY_H) && !Paused && !B1.Checkmate && !B1.Stalemate)
             {
                 B1.showMoveHistory = !B1.showMoveHistory;
@@ -184,17 +319,26 @@ int main()
             if (restartButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Reset();
+                if (appState == ENGINE_GAME && engineColor == 1)
+                    chessGameState.flipBoard();
+                if (engine != nullptr)
+                    engine->reset(); // sends "ucinewgame" - reuses the process
             }
             if (menuButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Reset();
                 appState = MAIN_MENU;
+                if (engine != nullptr)
+                {
+                    engine->shutdown();
+                    delete engine;
+                    engine = nullptr; // null so that we don't call getmove in a dead engine
+                }
             }
             if (exitButton.isPressed(mousePosition, mousePressed))
             {
                 exit = true;
             }
-
         }
 
         if ((appState == GAME || appState == ENGINE_GAME) && Paused)
@@ -211,12 +355,23 @@ int main()
             if (restartButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Reset();
+                if (appState == ENGINE_GAME && engineColor == 1)
+                    chessGameState.flipBoard();
+                if (engine != nullptr)
+                    engine->reset();
+
                 Paused = !Paused;
             }
             if (menuButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Reset();
                 appState = MAIN_MENU;
+                if (engine != nullptr)
+                {
+                    engine->shutdown();
+                    delete engine;
+                    engine = nullptr;
+                }
                 Paused = !Paused;
             }
             if (exitButton.isPressed(mousePosition, mousePressed))
@@ -245,6 +400,67 @@ int main()
             startButton.DrawWithHover(mousePosition);
             engineButton.DrawWithHover(mousePosition);
             exitButton.DrawWithHover(mousePosition);
+
+            if (enginePlayerselect)
+            {
+                DrawRectangle(0, 0, gameScreenWidth, gameScreenHeight, Fade(BLACK, 0.35f));
+
+                int panelWidth = 860;
+                int panelHeight = 420;
+                int panelX = (gameScreenWidth - panelWidth) / 2;
+                int panelY = 185;
+                DrawRectangle(panelX, panelY, panelWidth, panelHeight, Fade(DARKGRAY, 0.94f));
+                DrawRectangleLines(panelX, panelY, panelWidth, panelHeight, RAYWHITE);
+
+                const char *title = "Choose your color";
+                int titleSize = 40;
+                int titleWidth = MeasureText(title, titleSize);
+                DrawText(title, panelX + (panelWidth - titleWidth) / 2, panelY + 20, titleSize, RAYWHITE);
+
+                const char *subtitle = "Click white to play first, or black to let the engine start.";
+                int subtitleSize = 22;
+                int subtitleWidth = MeasureText(subtitle, subtitleSize);
+                DrawText(subtitle, panelX + (panelWidth - subtitleWidth) / 2, panelY + 70, subtitleSize, LIGHTGRAY);
+
+                engineDifficultySlider.Draw("Engine difficulty");
+
+                Vector2 whiteSize = whitePlayer.GetSize();
+                Vector2 blackSize = blackPlayer.GetSize();
+                int gap = 40;
+                float buttonsY = panelY + 235.0f;
+                float totalWidth = whiteSize.x + gap + blackSize.x;
+                float startX = (gameScreenWidth - totalWidth) / 2.0f;
+
+                whitePlayer.SetPosition({startX, buttonsY});
+                blackPlayer.SetPosition({startX + whiteSize.x + gap, buttonsY});
+
+                whitePlayer.DrawWithHover(mousePosition);
+                blackPlayer.DrawWithHover(mousePosition);
+
+                drawHint("Click anywhere to remove this overlay", panelX + panelWidth / 2, panelY + panelHeight - 34, 20, RAYWHITE);
+            }
+            else if (engineLaunchFailed)
+            {
+                DrawRectangle(0, 0, gameScreenWidth, gameScreenHeight, Fade(BLACK, 0.35f));
+
+                int panelWidth = 920;
+                int panelHeight = 150;
+                int panelX = (gameScreenWidth - panelWidth) / 2;
+                int panelY = 210;
+                DrawRectangle(panelX, panelY, panelWidth, panelHeight, Fade(MAROON, 0.92f));
+                DrawRectangleLines(panelX, panelY, panelWidth, panelHeight, RAYWHITE);
+
+                const char *errorTitle = "Engine unavailable";
+                int errorTitleSize = 38;
+                int errorTitleWidth = MeasureText(errorTitle, errorTitleSize);
+                DrawText(errorTitle, panelX + (panelWidth - errorTitleWidth) / 2, panelY + 18, errorTitleSize, RAYWHITE);
+
+                int errorTextSize = 24;
+                int errorTextWidth = MeasureText(engineLaunchErrorMessage.c_str(), errorTextSize);
+                DrawText(engineLaunchErrorMessage.c_str(), panelX + (panelWidth - errorTextWidth) / 2, panelY + 70, errorTextSize, WHITE);
+
+                drawHint("Click anywhere to remove this overlay", panelX + panelWidth / 2, panelY + panelHeight - 34, 20, RAYWHITE);
+            }
         }
 
         else if (appState == GAME || appState == ENGINE_GAME)
@@ -364,9 +580,10 @@ int main()
                     menuButton.DrawWithHover(mousePosition);
                     exitButton.DrawWithHover(mousePosition);
                 }
-                
-                else if (B1.Resigned){
-                                        
+
+                else if (B1.Resigned)
+                {
+
                     int windowWidth = gameScreenWidth;   // Virtual window width
                     int windowHeight = gameScreenHeight; // Virtual window height
 
@@ -382,21 +599,21 @@ int main()
                     DrawText(title, titleX, titleY, titleSize, RED);
 
                     // Winner
-                    const char* winner = (B1.resignedPlayer == 1)? "Black Wins!" : "White Wins!";
+                    const char *winner = (B1.resignedPlayer == 1) ? "Black Wins!" : "White Wins!";
                     int winnerSize = 50;
                     int winnerWidth = MeasureText(winner, winnerSize);
                     int winnerX = (windowWidth - winnerWidth) / 2;
                     int winnerY = titleY + titleSize + 30;
                     DrawText(winner, winnerX, winnerY, winnerSize, BEIGE);
-                    
+
                     // Buttons
                     int buttonStartY = winnerY + winnerSize + 60;
                     Button::UpdateThreeButtonPositions(restartButton,
-                         menuButton,
-                         exitButton,
-                         windowWidth,
-                         windowHeight,
-                         buttonStartY);
+                                                       menuButton,
+                                                       exitButton,
+                                                       windowWidth,
+                                                       windowHeight,
+                                                       buttonStartY);
                     restartButton.DrawWithHover(mousePosition);
                     menuButton.DrawWithHover(mousePosition);
                     exitButton.DrawWithHover(mousePosition);
@@ -416,6 +633,23 @@ int main()
                     resignButton.DrawWithHover(mousePosition);
 
                     B1.UpdateDragging();
+
+                    if (appState == ENGINE_GAME && engine != nullptr && !B1.Checkmate && !B1.Stalemate && !B1.PawnPromo && !B1.Resigned && !Paused && chessGameState.getCurrentPlayer() == engineColor)
+                    {
+                        if (deferEngineMoveOneFrame)
+                        {
+                            deferEngineMoveOneFrame = false;
+                        }
+                        else
+                        {
+                            EngineMove em = engine->getMove(B1.uciMoveList);
+                            if (em.isValid)
+                            {
+                                B1.ApplyEngineMove(em);
+                            }
+                        }
+                    }
+
                     B1.DrawPlayer();
                     B1.DrawPieces();
                     B1.DrawMoveHistory();
@@ -438,6 +672,7 @@ int main()
     }
 
     // Unloading textures and closing the window
+    shutdownEngine();
     UnloadRenderTexture(target);
     UnloadTexture(background);
     UnloadTexture(boardTexture);

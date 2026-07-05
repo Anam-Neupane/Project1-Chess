@@ -57,6 +57,9 @@ public:
     // Read-only access to the raw records (used when buliding MoveRecord in Board.cpp)
     const std::vector<MoveRecord> &GetMoves() const { return moves; }
 
+    // Mutable access to the last move, used for pawn promotion
+    MoveRecord &GetLastMoveMutable() { return moves.back(); }
+
     // Render the panel into the side panel area using Raylib DrawText
     void DrawPanel(float panelX, float panelY, float panelWidth, float panelHeight);
 };
