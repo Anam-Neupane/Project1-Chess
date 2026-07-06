@@ -5,8 +5,9 @@ A desktop chess game built with C++ and raylib.
 This project is an in-progress chess application with:
 
 - Local player-vs-player mode
-- Local player-vs-engine mode (Future)
-- Menu system and game state handling
+- Local player-vs-engine mode (Integrated with Stockfish)
+- Move history and undo functionality
+- Menu system, difficulty slider and game state handling
 - UI assets and buttons for navigation
 
 ## Tech Stack
@@ -28,6 +29,20 @@ Install or prepare:
 1. raylib (compatible with 5.x)
 2. MinGW-w64 / w64devkit (with `g++` and `mingw32-make`)
 3. Git
+4. Stockfish chess engine
+
+## Downloading Stockfish
+
+To play against the computer, you need the Stockfish engine executable (`stockfish.exe`):
+
+1. Go to the [Stockfish download page](https://stockfishchess.org/download/).
+2. Download the appropriate version for Windows (e.g., AVX2 or POPCNT depending on your CPU).
+3. Extract the downloaded ZIP file.
+4. Locate the `stockfish-windows-x86-64-*.exe` file (the name might vary slightly).
+5. Rename the file to `stockfish.exe`.
+6. Place `stockfish.exe` in the root directory of this project (alongside `Makefile` and `README.md`).
+
+> **Note:** The `stockfish.exe` binary should not be committed or pushed to the repository because it's a large compiled binary and platform-specific. It is already ignored by the `.gitignore` file (`*.exe`).
 
 ## Setup From Scratch (Windows)
 
@@ -142,6 +157,8 @@ Notes:
 	|   |-- Constants.hpp
 	|   |-- GameState.cpp
 	|   |-- GameState.hpp
+	|   |-- MoveHistory.cpp
+	|   |-- MoveHistory.hpp
 	|   |-- Piece.hpp
 	|   `-- moves/
 	|       |-- cpp/
@@ -156,9 +173,14 @@ Notes:
 	|           |-- MoveValidator.hpp
 	|           `-- PieceMovement.hpp
 	|-- engine/
+	|   |-- ChessEngine.hpp
+	|   |-- EngineMove.hpp
+	|   |-- StockfishEngine.cpp
+	|   `-- StockfishEngine.hpp
 	`-- ui/
 		|-- button.cpp
-		`-- button.hpp
+		|-- button.hpp
+		`-- slider.hpp
 ```
 
 ## Common Issues
