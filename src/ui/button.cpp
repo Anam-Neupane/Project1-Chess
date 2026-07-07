@@ -23,12 +23,12 @@ Button::~Button()
 
 void Button::Draw()
 {
-    DrawTextureV(texture, position, WHITE);
+    DrawTextureEx(texture, position, 0.0f , drawScale , WHITE);
 }
 
 bool Button::isPressed(Vector2 mousePos, bool mousePressed)
 {
-    Rectangle rect = {position.x, position.y, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+    Rectangle rect = {position.x, position.y, static_cast<float>(texture.width) * drawScale, static_cast<float>(texture.height) * drawScale};
 
     if (CheckCollisionPointRec(mousePos, rect) && mousePressed)
     {
@@ -45,22 +45,27 @@ void Button::SetPosition(Vector2 newPosition)
 
 Vector2 Button::GetSize()
 {
-    return {static_cast<float>(texture.width),
-            static_cast<float>(texture.height)};
+    return {static_cast<float>(texture.width) * drawScale,
+            static_cast<float>(texture.height) * drawScale};
+}
+
+void Button::SetDrawScale(float s)
+{
+    drawScale = s; 
 }
 
 bool Button::isHovered(Vector2 mousePos)
 {
     Rectangle rect = {position.x, position.y,
-                      static_cast<float>(texture.width),
-                      static_cast<float>(texture.height)};
+                      static_cast<float>(texture.width) * drawScale,
+                      static_cast<float>(texture.height) * drawScale};
     return CheckCollisionPointRec(mousePos, rect);
 }
 
 void Button::DrawWithHover(Vector2 mousePos)
 {
     Color tint = isHovered(mousePos) ? LIGHTGRAY : WHITE;
-    DrawTextureV(texture, position, tint);
+    DrawTextureEx(texture, position, 0.0f , drawScale, tint);
 }
 
 void Button::UpdateMenuButtonPosition(Button &start, Button &engine, Button &exit, int screenWidth, int screenHeight)
@@ -100,3 +105,19 @@ void Button::UpdateThreeButtonPositions(Button& btn1, Button& btn2,Button& btn3,
     btn2.SetPosition({(screenWidth - size2.x) / 2.0f, static_cast<float>(startY + size1.y + spacing)});
     btn3.SetPosition({(screenWidth - size3.x) / 2.0f, static_cast<float>(startY + size1.y + size2.y + spacing*2)});
 }
+
+void Button::UpdateThreeButtonPositionsInPanel(Button& btn1, Button& btn2, Button& btn3, float panelX, float panelWidth, float startY)
+{
+    Vector2 size1 = btn1.GetSize();
+    Vector2 size2 = btn2.GetSize();
+    Vector2 size3 = btn3.GetSize();
+
+    float panelCenterX = panelX + panelWidth / 2.0f; 
+    int spacing = 10; 
+
+
+    btn1.SetPosition({panelCenterX - size1.x / 2.0f, startY});
+    btn2.SetPosition({panelCenterX - size2.x / 2.0f, startY + size1.y + spacing}); 
+    btn3.SetPosition({panelCenterX - size3.x / 2.0f, startY + size1.y + spacing + size2.y + spacing});
+}
+

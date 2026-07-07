@@ -7,6 +7,7 @@ class Button
 private:
     Texture2D texture;
     Vector2 position;
+    float drawScale = 1.0f;
 
 public:
     Button(const char *imagePath, Vector2 imagePosition, float scale);
@@ -15,8 +16,10 @@ public:
     bool isPressed(Vector2 mousePos, bool mousePressed);
     void SetPosition(Vector2 newPosition); // Change position after creation
     Vector2 GetSize();                     // Get width/height for calculations
+    void SetDrawScale(float s);
     bool isHovered(Vector2 mousePos);      // Check if mouse is over button
     void DrawWithHover(Vector2 mousePos);  // Draw with hover effect
     static void UpdateMenuButtonPosition(Button &start, Button &engine, Button &exit, int screenWidth, int screenHeight);
     static void UpdateThreeButtonPositions( Button & btn1, Button&btn2,Button& btn3, int screenWidth, int screenHeight, int startY);
+    static void UpdateThreeButtonPositionsInPanel(Button &btn1, Button &btn2, Button &btn3, float panelX, float panelWidth, float startY); 
 };
