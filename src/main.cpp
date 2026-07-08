@@ -619,6 +619,7 @@ int main()
                     resignButton.SetPosition({1030.0f, 940.0f});
                     resignButton.DrawWithHover(mousePosition);
                     B1.UpdateDragging();
+                    B1.HandleClickToMove();
 
                     if (appState == ENGINE_GAME && engine != nullptr && !B1.Checkmate && !B1.Stalemate && !B1.PawnPromo && !B1.Resigned && !Paused && chessGameState.getCurrentPlayer() == engineColor)
                     {

@@ -74,7 +74,11 @@ private:
     Vector2 selectedPiecePosition;          // Position of piece (ORIGINAL position before drag)
     bool hasPieceSelected;                  // Is piece selected? for valid selection
     int selectedPieceType;                  // Type of selected piece (for en passant highlight)
-    
+
+    // Click-to-move selection state
+    int clickSelectedPieceIndex = -1; // Index of piece selected via click (-1 = none)
+    Vector2 clickOriginalPosition; // Original position of click-selected piece
+
     // For tracking captured pieces display positions
     int whiteCapturedCount;
     int blackCapturedCount;
@@ -112,6 +116,7 @@ public:
     void DrawLastMoveHightlight(); // For highlight of last move
     void UnloadPieces();
     void UpdateDragging();
+    void HandleClickToMove();
     void CapturePiece(int capturedPieceIndex);
     void ExecuteEnPassant(Piece &capturingPawn, std::vector<Piece> &pieces, const Vector2 &originalPosition, const Vector2 &newPosition);
     void DrawScores();
@@ -119,6 +124,8 @@ public:
     static void ExecuteCastling(Piece &king, bool kingside, std::vector<Piece> &pieces, const Vector2 originalPosition);
     void DrawPromotionMenu(Vector2 position, int color);
     void HandlePawnPromotion(int color, Vector2 position);
+
+    bool TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to); // Execute a validated move: does what update draggign needed. 
 
     void ToggleShowValidMoves();    // Toggle the highlight features
     void DrawValidMoveHighlights(); // Draw the valid move indicators
