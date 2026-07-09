@@ -43,8 +43,10 @@
         {
             "name": "Linux",
             "includePath": [
-                "/home/linuxbrew/.linuxbrew/include",
-                "${workspaceFolder}/**"
+                // "/home/linuxbrew/.linuxbrew/include",q
+                "${workspaceFolder}/**",
+                "/usr/lib/",
+                "/usr/lib64/"
             ],
             "defines": [
                 "_DEBUG",

@@ -62,10 +62,8 @@
             "linux": {
                 "args": [
                     "PROJECT_NAME=${fileBasenameNoExtension}",
-                    "DESTDIR=/home/linuxbrew/.linuxbrew",
-                    "RAYLIB_LIBTYPE=SHARED",
-                    "EXAMPLE_RUNTIME_PATH=/home/linuxbrew/.linuxbrew/lib",
-                    "OBJS=src/*.cpp"
+                    "OBJS=src/*.cpp",
+                    "BUILD_MODE=DEBUG"
                 ]
             },
             "problemMatcher": [
