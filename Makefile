@@ -28,7 +28,7 @@ PROJECT_NAME       ?= game
 RAYLIB_VERSION     ?= 5.0.0
 RAYLIB_PATH        ?= C:/raylib/raylib
 
-# Define compiler path on Windows
+# Define compiler path on Windows (only used when PLATFORM_OS=WINDOWS)
 COMPILER_PATH      ?= C:/raylib/w64devkit/bin
 
 # Define default options
@@ -393,7 +393,7 @@ $(PROJECT_NAME): $(OBJS)
 # Compile source files
 # NOTE: This pattern will compile every module defined on $(OBJS)
 #%.o: %.c
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS) -D$(PLATFORM)
 
 # Clean everything
@@ -406,7 +406,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
 	find -type f -executable | xargs file -i | grep -E 'x-object|x-archive|x-sharedlib|x-executable' | rev | cut -d ':' -f 2- | rev | xargs rm -fv
     endif
     ifeq ($(PLATFORM_OS),OSX)
-		find . -type f -perm +ugo+x -delete
+		find . -type f -perm /ugo+x -delete
 		rm -f *.o
     endif
 endif

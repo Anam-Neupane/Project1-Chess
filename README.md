@@ -14,35 +14,77 @@ This project is an in-progress chess application with:
 
 - C++14
 - raylib 5.x
-- MinGW-w64 toolchain (w64devkit)
-- GNU Make (mingw32-make on Windows)
+- GNU Make
+- MinGW-w64 (Windows) / GCC or Clang (Linux/macOS)
 
 ## Prerequisites
 
-The current Makefile defaults are configured for a Windows setup with these paths:
+### Windows
+
+The Makefile defaults expect these paths:
 
 - raylib source: `C:/raylib/raylib`
 - compiler tools: `C:/raylib/w64devkit/bin`
 
-Install or prepare:
+Install:
 
 1. raylib (compatible with 5.x)
 2. MinGW-w64 / w64devkit (with `g++` and `mingw32-make`)
 3. Git
 4. Stockfish chess engine
 
+### Linux (Debian/Ubuntu)
+
+```bash
+# Install raylib (development files)
+sudo apt install libraylib-dev
+
+# Or build from source:
+# git clone https://github.com/raysan5/raylib.git
+# cd raylib/src
+# make PLATFORM=PLATFORM_DESKTOP
+# sudo make install
+
+# Install build tools
+sudo apt install g++ make
+
+# Install Stockfish
+sudo apt install stockfish
+```
+
+### macOS (Homebrew)
+
+```bash
+# Install raylib
+brew install raylib
+
+# Install build tools (Xcode Command Line Tools provides clang++ and make)
+xcode-select --install
+
+# Install Stockfish
+brew install stockfish
+```
+
 ## Downloading Stockfish
 
-To play against the computer, you need the Stockfish engine executable (`stockfish.exe`):
+To play against the computer, you need the Stockfish engine executable in the project root directory.
+
+### Windows
 
 1. Go to the [Stockfish download page](https://stockfishchess.org/download/).
-2. Download the appropriate version for Windows (e.g., AVX2 or POPCNT depending on your CPU).
-3. Extract the downloaded ZIP file.
-4. Locate the `stockfish-windows-x86-64-*.exe` file (the name might vary slightly).
-5. Rename the file to `stockfish.exe`.
-6. Place `stockfish.exe` in the root directory of this project (alongside `Makefile` and `README.md`).
+2. Download the appropriate version for Windows.
+3. Extract the ZIP, rename the executable to `stockfish.exe`.
+4. Place `stockfish.exe` in the project root (alongside `Makefile`).
 
-> **Note:** The `stockfish.exe` binary should not be committed or pushed to the repository because it's a large compiled binary and platform-specific. It is already ignored by the `.gitignore` file (`*.exe`).
+> **Note:** The `stockfish.exe` binary is already ignored by `.gitignore` (`*.exe`).
+
+### Linux
+
+If installed via `apt`, the `stockfish` binary is in your `PATH`. The game will find it automatically. If you want a specific build, place a `stockfish` executable (no extension) in the project root.
+
+### macOS
+
+If installed via `brew`, the `stockfish` binary is in your `PATH`. The game finds it via `exec` lookup. To use a specific build, place `stockfish` in the project root.
 
 ## Setup From Scratch (Windows)
 
@@ -82,7 +124,9 @@ Install these extensions if they are missing:
 - C/C++ (`ms-vscode.cpptools`)
 - Makefile Tools (`ms-vscode.makefile-tools`)
 
-## Build and Run From Terminal (Windows)
+## Build and Run From Terminal
+
+### Windows
 
 Open PowerShell or Command Prompt in the project root, then run:
 
@@ -108,6 +152,34 @@ Clean build artifacts:
 C:/raylib/w64devkit/bin/mingw32-make.exe clean
 ```
 
+### Linux / macOS
+
+Open a terminal in the project root, then run:
+
+```bash
+make PROJECT_NAME=game BUILD_MODE=DEBUG
+```
+
+Run the game:
+
+```bash
+./game
+```
+
+Build a release binary:
+
+```bash
+make PROJECT_NAME=game BUILD_MODE=RELEASE
+```
+
+Clean build artifacts:
+
+```bash
+make clean
+```
+
+> **Note:** On Linux/macOS, raylib should be installed system-wide or findable via standard paths. If raylib is installed in a custom location, set `RAYLIB_PATH` and optionally `DESTDIR` (see the Makefile for details).
+
 ## Run and Debug in VS Code (F5)
 
 1. Open `src/main.cpp` in the editor.
@@ -121,10 +193,11 @@ Notes:
 - If `src/main.cpp` is active, the generated executable is `main.exe`.
 - For a fixed output name (`game.exe`), use the terminal build command from this README.
 
-## Notes for Other Environments
+## Platform Notes
 
-- Linux/macOS can also use this Makefile, but you must install raylib and a compatible compiler toolchain first.
-- You may need to override `RAYLIB_PATH`, compiler path, and platform-specific dependencies.
+- **Windows**: The Makefile defaults expect raylib at `C:/raylib/raylib` and w64devkit at `C:/raylib/w64devkit/bin`. Override `RAYLIB_PATH` and `COMPILER_PATH` if your setup differs.
+- **Linux/macOS**: raylib must be installed system-wide (via apt, brew, or from source with `make install`). The Makefile detects the platform automatically and links the correct libraries. Override `RAYLIB_PATH` if raylib is at a non-standard location.
+- Stockfish is expected as `stockfish` (Linux/macOS) or `stockfish.exe` (Windows) in `PATH` or the project root.
 
 ## Project Structure
 

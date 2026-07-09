@@ -4,13 +4,22 @@
 extern float squareSize;
 extern Vector2 boardPosition;
 
-StockfishEngine::StockfishEngine() : hProcess(INVALID_HANDLE_VALUE),
-                                     hChildStdinRead(INVALID_HANDLE_VALUE),
-                                     hChildStdinWrite(INVALID_HANDLE_VALUE),
-                                     hChildStdoutRead(INVALID_HANDLE_VALUE),
-                                     hChildStdoutWrite(INVALID_HANDLE_VALUE),
-                                     skillLevel(10),
-                                     moveTimeMs(300)
+StockfishEngine::StockfishEngine()
+#ifdef _WIN32
+    : hProcess(INVALID_HANDLE_VALUE),
+      hChildStdinRead(INVALID_HANDLE_VALUE),
+      hChildStdinWrite(INVALID_HANDLE_VALUE),
+      hChildStdoutRead(INVALID_HANDLE_VALUE),
+      hChildStdoutWrite(INVALID_HANDLE_VALUE),
+#else
+    : hProcess(-1),
+      hChildStdinRead(-1),
+      hChildStdinWrite(-1),
+      hChildStdoutRead(-1),
+      hChildStdoutWrite(-1),
+#endif
+      skillLevel(10),
+      moveTimeMs(300)
 {
 }
 
@@ -23,8 +32,8 @@ StockfishEngine::~StockfishEngine()
 
 bool StockfishEngine::init()
 {
-    // Security_attributes with bInheritHandle=True lets the child process
-    // inherit the pipe ends we designate as inherited.
+#ifdef _WIN32
+
     SECURITY_ATTRIBUTES sa;
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
     sa.bInheritHandle = TRUE; // pipe handles inheritable
@@ -42,8 +51,8 @@ bool StockfishEngine::init()
     if (!CreatePipe(&hChildStdoutRead, &hChildStdoutWrite, &sa, 0))
     {
         std::cerr << "StockfishEngine: CreatePipe (stdout) failed. Error: " << GetLastError() << std::endl;
-        CloseHandle(hChildStdinRead);
-        CloseHandle(hChildStdinWrite);
+        CloseHandle(hChildStdinRead); hChildStdinRead = INVALID_HANDLE_VALUE;
+        CloseHandle(hChildStdinWrite); hChildStdinWrite = INVALID_HANDLE_VALUE;
         return false;
     }
 
@@ -66,24 +75,20 @@ bool StockfishEngine::init()
     PROCESS_INFORMATION pi;
     ZeroMemory(&pi, sizeof(pi));
 
-    // Spawn stockfish.exe - it must be in the working directory or Path.
-    // The second argument must be a non-const char* (Windows API requirement).
     char exeName[] = "stockfish.exe";
-    if (!CreateProcess(
-            NULL,    // Use command line to find executable
-            exeName, // Command Line
-            NULL,    // Defalut process security
-            NULL,    // Defalut thread security
-            TRUE,    // Inherit handles (critical for the pipe ends)
-            0,       // No creation flags
-            NULL,    // Inherit enviroment
-            NULL,    // Inherit working directory
-            &si,
-            &pi))
+    if (!CreateProcessA(NULL, exeName, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
     {
         std::cerr << "StockfishEngine: Failed to launch stockfish.exe. "
                   << "Is it in the project root directory? Error:"
                   << GetLastError() << std::endl;
+
+        CloseHandle(hChildStdoutWrite); hChildStdoutWrite = INVALID_HANDLE_VALUE;
+
+        CloseHandle(hChildStdinRead); hChildStdinRead = INVALID_HANDLE_VALUE;
+
+        CloseHandle(hChildStdinWrite); hChildStdinWrite = INVALID_HANDLE_VALUE;
+
+        CloseHandle(hChildStdoutRead); hChildStdoutRead = INVALID_HANDLE_VALUE;
         return false;
     }
 
@@ -96,9 +101,59 @@ bool StockfishEngine::init()
     hProcess = pi.hProcess; 
     CloseHandle(pi.hThread); 
 
-    // Uci handshake
-    sendCommand("uci\n"); 
-    readUntil("uciok"); // Block until engine sends "uciok"
+#else
+    int stdinPipe[2];
+    int stdoutPipe[2];
+
+    if (pipe(stdinPipe) != 0)
+    {
+        std::cerr << "StockfishEngine: pipe(stdin) failed" << std::endl;
+        return false;
+    }
+
+    if (pipe(stdoutPipe) != 0)
+    {
+        std::cerr << "StockfishEngine: pipe(stdout) failed" << std::endl;
+        close(stdinPipe[0]); close(stdinPipe[1]);
+        return false;
+    }
+
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        std::cerr << "StockfishEngine: fork() failed" << std::endl;
+        close(stdinPipe[0]); close(stdinPipe[1]);
+        close(stdoutPipe[0]); close(stdoutPipe[1]);
+        return false;
+    }
+
+    if (pid == 0)
+    {
+        dup2(stdinPipe[0], STDIN_FILENO);
+        dup2(stdoutPipe[1], STDOUT_FILENO);
+        dup2(stdoutPipe[1], STDERR_FILENO);
+
+        close(stdinPipe[0]); close(stdinPipe[1]);
+        close(stdoutPipe[0]); close(stdoutPipe[1]);
+
+        execlp("stockfish", "stockfish", nullptr);
+        _exit(127);
+    }
+
+    close(stdinPipe[0]);
+    close(stdoutPipe[1]);
+
+    hChildStdinRead = -1;
+    hChildStdoutWrite = -1;
+    hChildStdinWrite = stdinPipe[1];
+    hChildStdoutRead = stdoutPipe[0];
+    hProcess = static_cast<int>(pid);
+
+    std::cout << "StockfishEngine: Forked child pid " << pid << std::endl;
+#endif
+
+    sendCommand("uci\n");
+    readUntil("uciok");
 
     sendCommand("isready\n"); 
     readUntil("readyok"); // Block until engine is fully loaded 
@@ -109,32 +164,50 @@ bool StockfishEngine::init()
 
 }
 
-
 bool StockfishEngine::sendCommand(const std::string& cmd) 
 {
-    DWORD written = 0; 
+#ifdef _WIN32
+    DWORD written = 0;
     BOOL ok = WriteFile(hChildStdinWrite, cmd.c_str(), static_cast<DWORD>(cmd.size()),
                             &written, NULL); // Synchronous (non-overlapped)
     
     
     return ok != FALSE;
+#else
+    ssize_t written = write(hChildStdinWrite, cmd.c_str(), cmd.size());
+    return written == static_cast<ssize_t>(cmd.size());
+#endif
 }
 
 std::string StockfishEngine::readLine()
 {
     std::string line; 
     char c = '\0';
-    DWORD bytesRead = 0; 
+
+#ifdef _WIN32
+    DWORD bytesRead = 0;
 
     while (true) 
     {
-        if(!ReadFile(hChildStdoutRead, &c, 1, &bytesRead, NULL) || bytesRead == 0)
-            break;      // Pipe closed or error
-        if(c == '\n')
-            break;      // End of Line
-        if(c != '\r')   // Ignore Windows carriage returns
-            line += c;  
+        if (!ReadFile(hChildStdoutRead, &c, 1, &bytesRead, NULL) || bytesRead == 0)
+            break;
+        if (c == '\n')
+            break;
+        if (c != '\r')
+            line += c;
     }
+#else
+    while (true)
+    {
+        ssize_t bytesRead = read(hChildStdoutRead, &c, 1);
+        if (bytesRead <= 0)
+            break;
+        if (c == '\n')
+            break;
+        if (c != '\r')
+            line += c;
+    }
+#endif
 
     return line; 
 }
@@ -251,32 +324,60 @@ void StockfishEngine::reset()
 
 void StockfishEngine::shutdown()
 {
-    if(hChildStdinWrite != INVALID_HANDLE_VALUE)
+#ifdef _WIN32
+    if (hChildStdinWrite != INVALID_HANDLE_VALUE)
     {
-        sendCommand("quit\n"); // Politely ask stockfish to exit
+        sendCommand("quit\n");
     }
 
-    // Wait up to 2 seconds for Stockfish to exit gracefully 
     if (hProcess != INVALID_HANDLE_VALUE)
     {
-        WaitForSingleObject(hProcess, 2000); 
-        TerminateProcess(hProcess , 0); // Force - kill if it didn't exit
-        CloseHandle(hProcess); 
+        WaitForSingleObject(hProcess, 2000);
+        TerminateProcess(hProcess, 0);
+        CloseHandle(hProcess);
         hProcess = INVALID_HANDLE_VALUE;
     }
 
-    // Close all remaining pipe handles
     auto safeClose = [](HANDLE& h)
     {
         if (h != INVALID_HANDLE_VALUE)
         {
-            CloseHandle(h); 
-            h = INVALID_HANDLE_VALUE; 
+            CloseHandle(h);
+            h = INVALID_HANDLE_VALUE;
         }
-    }; 
+    };
 
     safeClose(hChildStdinRead);
     safeClose(hChildStdinWrite);
-    safeClose(hChildStdoutRead); 
-    safeClose(hChildStdoutWrite); 
+    safeClose(hChildStdoutRead);
+    safeClose(hChildStdoutWrite);
+#else
+    if (hChildStdinWrite != -1)
+    {
+        sendCommand("quit\n");
+    }
+
+    if (hProcess != -1)
+    {
+        int status;
+        waitpid(hProcess, &status, WNOHANG);
+        kill(hProcess, SIGTERM);
+        waitpid(hProcess, &status, 0);
+        hProcess = -1;
+    }
+
+    auto safeClose = [](int& fd)
+    {
+        if (fd != -1)
+        {
+            close(fd);
+            fd = -1;
+        }
+    };
+
+    safeClose(hChildStdinRead);
+    safeClose(hChildStdinWrite);
+    safeClose(hChildStdoutRead);
+    safeClose(hChildStdoutWrite);
+#endif
 }

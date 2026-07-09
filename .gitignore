@@ -1,4 +1,10 @@
 *.exe
 *.dsym
+*.dSYM
+*.o
+*.obj
 main
+game
+stockfish
+stockfish.exe
 *.idea

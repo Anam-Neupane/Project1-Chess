@@ -3,7 +3,12 @@
 
 #include "ChessEngine.hpp"
 #include "../core/Constants.hpp"
-#include "core/Piece.hpp"
+#include "../core/Piece.hpp"
+#include <iostream>
+#include <sstream>
+#include <cmath>
+
+#ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -17,30 +22,35 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <iostream>
-#include <sstream>
-#include <cmath>
-
-// StockfishEngine - Communicates with a Stockfish child process via studio pipes.
-// Inherits ChessEngine (abstract) and implements the UCI protocol. (This is done so that we can try to add new bot ourself)
+#else
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#endif
 
 class StockfishEngine : public ChessEngine
 {
 private:
-    void *hProcess;          // Stockfish child process
-    void *hChildStdinRead;   // Read-end of stdin pipe (child reads from this)
-    void *hChildStdinWrite;  // Write-end of stdin pipe (parent writes to this)
-    void *hChildStdoutRead;  // Read-end of stdout pipe (parent reads from this)
-    void *hChildStdoutWrite; // Write-end of stdout pipe (child writes to this)
+#ifdef _WIN32
+    HANDLE hProcess;
+    HANDLE hChildStdinRead;
+    HANDLE hChildStdinWrite;
+    HANDLE hChildStdoutRead;
+    HANDLE hChildStdoutWrite;
+#else
+    int hProcess;
+    int hChildStdinRead;
+    int hChildStdinWrite;
+    int hChildStdoutRead;
+    int hChildStdoutWrite;
+#endif
 
-    int skillLevel; // Current Skill Level (1-20)
-    int moveTimeMs; // Milliseconds to think per move
+    int skillLevel;
+    int moveTimeMs;
 
     bool sendCommand(const std::string &cmd);
-    std::string readLine();                            // Blocking read of one output line
-    std::string readUntil(const std::string &keyword); // Read Lines until a starts with keyword
-
-    // Convert a UCI move string like "e2e4" into a EngineMove with pixel positions
+    std::string readLine();
+    std::string readUntil(const std::string &keyword);
     EngineMove uciToEngineMove(const std::string &uciStr) const;
 
 public:
@@ -49,7 +59,7 @@ public:
 
     bool init() override;
     void newGame() override;
-    void setDifficulty(int level) override; // lvl of stock fish from 1 to 20
+    void setDifficulty(int level) override;
     EngineMove getMove(const std::vector<std::string> &moveHistory) override;
     void reset() override;
     void shutdown() override;
