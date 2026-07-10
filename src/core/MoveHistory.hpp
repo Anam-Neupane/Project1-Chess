@@ -61,5 +61,5 @@ public:
     MoveRecord &GetLastMoveMutable() { return moves.back(); }
 
     // Render the panel into the side panel area using Raylib DrawText
-    void DrawPanel(float panelX, float panelY, float panelWidth, float panelHeight);
+    void DrawPanel(float panelX, float panelY, float panelWidth, float panelHeight, int reviewIndex = -1);
 };

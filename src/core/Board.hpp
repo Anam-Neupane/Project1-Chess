@@ -6,9 +6,28 @@
 #include "Constants.hpp"
 #include <raylib.h>
 #include <vector>
+#include <tuple>
 #include "MoveHistory.hpp"
 
 struct EngineMove; // Forward declaration -- full definition in EngineMove.hpp
+
+struct BoardSnapshot
+{
+    std::vector<Piece> pieces;
+    int currentPlayer;
+    Vector2 whiteKingPosition; 
+    Vector2 blackKingPosition; 
+    int whiteScore; 
+    int blackScore; 
+    int whiteCapturedCount;
+    int blackCapturedCount; 
+    bool kingInCheck; 
+    bool hasLastMove; 
+    Vector2 lastMoveFrom; 
+    Vector2 lastMoveTo; 
+    std::tuple<Piece, Vector2, Vector2> enPassantLastMove; 
+};
+
 
 class Board
 {
@@ -24,6 +43,14 @@ private:
     Vector2 offset;
     Texture2D promotionTexture[12];
     MoveHistory moveHistory; // Stores full game transcript. 
+
+    std::vector<BoardSnapshot> boardHistory; 
+    BoardSnapshot savedLiveSnapshot; // Saved when entering review mode 
+    bool hasSavedLiveState = false; 
+
+    // Move Traversal (time travel) 
+    int reviewMoveIndex = -1; // Which move index we're viewing (-1 = Live) 
+    bool isReviewing = false; // True when navigating through history 
 
     // Helper methods for board rotation
     Vector2 TransformPosition(Vector2 pos)
@@ -132,12 +159,26 @@ public:
     void ClearSelection();          // Clear selected piece and valid moves
     void DrawCheckHighlight();      // Draws a crimson glow under the king when in ckeck 
 
-    void DrawMoveHistory(); // renders the side panel 
+    void DrawMoveHistory(int reviewIndex = -1); // renders the side panel 
     
     bool ApplyEngineMove(const EngineMove& move); // Executes the engine move
     std::vector<std::string> uciMoveList;       // all MOves in UCI format: "e2e4", "e7e5"
     
+    void SaveBoardSnapshot(); 
+    void RestoreBoardSnapshot(const BoardSnapshot &snap); 
+    void TakeLiveSnapshot(); // Save current state for latter restoration
+    void RestoreLiveSnapshot(); // Restore the saved live state
+    int GetSnapshotCount() const { return static_cast<int>(boardHistory.size()); }
 
+    bool IsReviewing() const {return isReviewing;}
+    int GetReviewIndex() const {return reviewMoveIndex;}
+    int GetCurrentMoveCount() const {return static_cast<int>(uciMoveList.size()); }
+    Vector2 GetPlayerTurnPosition() const { return playerturnPosition; }
+
+    void GoToMove(int moveIndex);
+    void GoForwardOne(); 
+    void GoBackOne(); 
+    void ExitReviewMode(); 
 };
 
 #endif // BOARD_H

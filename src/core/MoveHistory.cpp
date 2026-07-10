@@ -141,7 +141,7 @@ std::string MoveHistory::GetFullHistory() const
 
 // Side Panel renderer
 
-void MoveHistory::DrawPanel(float panelX, float panelY, float panelWidth, float panelHeight)
+void MoveHistory::DrawPanel(float panelX, float panelY, float panelWidth, float panelHeight, int reviewIndex)
 {
 
     const int titleSize = 35;
@@ -153,6 +153,24 @@ void MoveHistory::DrawPanel(float panelX, float panelY, float panelWidth, float 
     const float innerX = panelX + 12.0f;
     const float blackColumnX = panelX + 150.0f;
     const Rectangle panelBounds = {panelX, panelY, panelWidth, panelHeight};
+
+    // Determine which line and column to highlight
+    int highlightLine = -1;
+    bool highlightWhite = false;
+    bool highlightBlack = false;
+
+    if (reviewIndex >= 0)
+    {
+        int moveIdx = reviewIndex - 1; // boardHistory[0] = initial position, moves offset by 1
+        if (moveIdx >= 0)
+        {
+            highlightLine = moveIdx / 2;
+            if (moveIdx % 2 == 0)
+                highlightWhite = true;
+            else
+                highlightBlack = true;
+        }
+    }
 
     DrawRectangle(static_cast<int>(panelX),
                   static_cast<int>(panelY),
@@ -234,19 +252,35 @@ void MoveHistory::DrawPanel(float panelX, float panelY, float panelWidth, float 
     int yOffset = static_cast<int>(contentTop - panelY);
     for (std::size_t i = static_cast<std::size_t>(startIdx); i < static_cast<std::size_t>(endIdx); ++i)
     {
-        // Highlight the latest move line, whether it is a partial white move or a completed pair.
-        Color textColor = (i == lines.size() - 1) ? YELLOW : WHITE;
+        // Live mode: highlight entire last line; Review mode: highlight specific column
+        Color whiteColor;
+        Color blackColor;
+
+        if (reviewIndex < 0)
+        {
+            // Live mode — highlight the whole last line
+            Color lineColor = (i == lines.size() - 1) ? YELLOW : WHITE;
+            whiteColor = lineColor;
+            blackColor = lineColor;
+        }
+        else
+        {
+            // Review mode — per-column highlight
+            whiteColor = (static_cast<int>(i) == highlightLine && highlightWhite) ? YELLOW : WHITE;
+            blackColor = (static_cast<int>(i) == highlightLine && highlightBlack) ? YELLOW : WHITE;
+        }
+
         DrawText(lines[i].first.c_str(),
                  static_cast<int>(innerX),
                  static_cast<int>(panelY + yOffset),
-                 fontSize, textColor);
+                 fontSize, whiteColor);
 
         if (!lines[i].second.empty())
         {
             DrawText(lines[i].second.c_str(),
                      static_cast<int>(blackColumnX),
                      static_cast<int>(panelY + yOffset),
-                     fontSize, textColor);
+                     fontSize, blackColor);
         }
 
         yOffset += lineHeight;

@@ -58,12 +58,20 @@ public:
     void switchPlayer();
     void flipBoard();
 
+    void setCurrentPlayer( int player) { currentPlayer = player; }
+    void setWhiteScore(int s) {whiteScore = s;}
+    void setBlackScore(int s) {blackScore = s;}
+    void setWhiteCapturedCount(int c) {whiteCapturedCount = c;}
+    void setBlackCapturedCount(int c) {blackCapturedCount = c;}
+
     // Score Management
     void addCapture(int capturingColor, int pieceValue);
     int getWhiteScore() const { return whiteScore; }
     int getBlackScore() const { return blackScore; }
 
     void reset();
+    void clearLastMove() { hasLastMove = false; }
+
 };
 
 #endif // GAMESTATE_HPP

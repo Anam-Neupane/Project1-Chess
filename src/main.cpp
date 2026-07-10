@@ -6,6 +6,7 @@
 #include "raymath.h"
 #include "engine/StockfishEngine.hpp"
 #include "ui/slider.hpp"
+#include <algorithm>
 // #include <cstddef>
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -150,6 +151,12 @@ int main()
                                IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) ||
                                IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE);
 
+        // Review long-press repeat state
+        static float reviewRepeatTimer = 0.0f;
+        static float reviewRepeatInterval = 0.0f;
+        static bool reviewLeftWasDown = false;
+        static bool reviewRightWasDown = false;
+
         if (B1.uciMoveList.size() != lastObservedUciMoveCount)
         {
             lastObservedUciMoveCount = B1.uciMoveList.size();
@@ -270,7 +277,47 @@ int main()
                 B1.showMoveHistory = !B1.showMoveHistory;
             }
 
-            if (!B1.Checkmate && !B1.Stalemate && !B1.Resigned && resignButton.isPressed(mousePosition, mousePressed))
+            // Review arrow keys with long-press acceleration
+            bool leftDown = IsKeyDown(KEY_LEFT);
+            bool rightDown = IsKeyDown(KEY_RIGHT);
+
+            if (leftDown && !reviewLeftWasDown)
+            {
+                B1.GoBackOne();
+                reviewRepeatTimer = 0.35f;
+                reviewRepeatInterval = 0.35f;
+            }
+            else if (leftDown)
+            {
+                reviewRepeatTimer -= GetFrameTime();
+                if (reviewRepeatTimer <= 0.0f)
+                {
+                    B1.GoBackOne();
+                    reviewRepeatInterval = std::max(0.04f, reviewRepeatInterval - 0.015f);
+                    reviewRepeatTimer = reviewRepeatInterval;
+                }
+            }
+            reviewLeftWasDown = leftDown;
+
+            if (rightDown && !reviewRightWasDown)
+            {
+                B1.GoForwardOne();
+                reviewRepeatTimer = 0.35f;
+                reviewRepeatInterval = 0.35f;
+            }
+            else if (rightDown)
+            {
+                reviewRepeatTimer -= GetFrameTime();
+                if (reviewRepeatTimer <= 0.0f)
+                {
+                    B1.GoForwardOne();
+                    reviewRepeatInterval = std::max(0.04f, reviewRepeatInterval - 0.015f);
+                    reviewRepeatTimer = reviewRepeatInterval;
+                }
+            }
+            reviewRightWasDown = rightDown;
+
+            if (!B1.IsReviewing() && !B1.Checkmate && !B1.Stalemate && !B1.Resigned && resignButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Resigned = true;
                 B1.resignedPlayer = chessGameState.getCurrentPlayer();
@@ -507,7 +554,7 @@ int main()
                 DrawRectangle(914, 55, sidePanelWidth + 180, 910, BROWN);
                 bool gameOver = B1.Checkmate || B1.Stalemate || B1.Resigned;
                 if (!gameOver)
-                {                
+                {
                     B1.DrawPlayer();
                 }
 
@@ -614,14 +661,18 @@ int main()
 
             else
                 {    
-                    B1.DrawMoveHistory();
-                    resignButton.SetDrawScale(1.0f);
-                    resignButton.SetPosition({1030.0f, 940.0f});
-                    resignButton.DrawWithHover(mousePosition);
-                    B1.UpdateDragging();
-                    B1.HandleClickToMove();
-
-                    if (appState == ENGINE_GAME && engine != nullptr && !B1.Checkmate && !B1.Stalemate && !B1.PawnPromo && !B1.Resigned && !Paused && chessGameState.getCurrentPlayer() == engineColor)
+                    B1.DrawMoveHistory(B1.IsReviewing() ? B1.GetReviewIndex() : -1);
+                    if (!B1.IsReviewing())
+                    {
+                        resignButton.SetDrawScale(1.0f);
+                        resignButton.SetPosition({1030.0f, 940.0f});
+                        resignButton.DrawWithHover(mousePosition);
+                    }
+                    if ( !B1.IsReviewing()){
+                        B1.UpdateDragging();
+                        B1.HandleClickToMove();
+                    }
+                    if (!B1.IsReviewing() && appState == ENGINE_GAME && engine != nullptr && !B1.Checkmate && !B1.Stalemate && !B1.PawnPromo && !B1.Resigned && !Paused && chessGameState.getCurrentPlayer() == engineColor)
                     {
                         if (deferEngineMoveOneFrame)
                         {

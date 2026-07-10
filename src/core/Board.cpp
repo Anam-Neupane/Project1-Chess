@@ -8,7 +8,7 @@
 #include <string>
 #include <cmath>
 #include <unordered_set>
-#include <algorithm> 
+#include <algorithm>
 
 // For Global variable
 float squareSize = 112.6;
@@ -16,12 +16,12 @@ Vector2 boardPosition = {0, 55};
 
 std::string Board::posToUCI(Vector2 pos) const
 {
-    // Reverse of the pixel-to-board formula: col = round(x - boardx) / size) 
+    // Reverse of the pixel-to-board formula: col = round(x - boardx) / size)
     int col = static_cast<int>(std::round((pos.x - boardPosition.x) / squareSize));
     int row = static_cast<int>(std::round((pos.y - boardPosition.y) / squareSize));
 
-    char fileChar = static_cast<char>('a' + col); 
-    char rankChar = static_cast<char>('8' - row); 
+    char fileChar = static_cast<char>('a' + col);
+    char rankChar = static_cast<char>('8' - row);
 
     return std::string(1, fileChar) + std::string(1, rankChar);
 }
@@ -193,6 +193,8 @@ void Board::LoadPieces()
             }
         }
     }
+
+    SaveBoardSnapshot();
 }
 
 void Board::LoadPromotionTexture()
@@ -320,7 +322,7 @@ void Board::ClearSelection()
     hasPieceSelected = false;
     selectedPiecePosition = {-1, -1};
     selectedPieceType = PAWN; // Reset to default (doesn't matter, hasPieceSelected is false)
-    clickSelectedPieceIndex = -1; 
+    clickSelectedPieceIndex = -1;
 }
 
 void Board::DrawValidMoveHighlights()
@@ -496,7 +498,7 @@ void Board::DrawPromotionMenu(Vector2 position, int color)
     HandlePawnPromotion(color, position);
 }
 
-void Board::DrawMoveHistory()
+void Board::DrawMoveHistory(int reviewIndex)
 {
     if (!showMoveHistory)
         return;
@@ -507,7 +509,7 @@ void Board::DrawMoveHistory()
     float panelWidth = 380.0f;
     float panelHeight = 910.0f;
 
-    moveHistory.DrawPanel(panelX, panelY, panelWidth, panelHeight);
+    moveHistory.DrawPanel(panelX, panelY, panelWidth, panelHeight, reviewIndex);
 }
 
 void Board::HandlePawnPromotion(int color, Vector2 position)
@@ -531,15 +533,17 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
                         // Replacing pawn with the selected piece
                         piece.type = static_cast<PieceType>(i + 1); // i + 1 because 0: Rook, 1: Knight, 2: Bishop, 3: Queen
                         piece.texture = promotionTexture[(color == 0 ? i : i + 6)];
-                        
+
                         // Append the promotion character to the UCI string for Stockfish
-                        if (!uciMoveList.empty()) {
+                        if (!uciMoveList.empty())
+                        {
                             static constexpr char promoChars[] = {'r', 'n', 'b', 'q'};
                             uciMoveList.back() += promoChars[i];
                         }
-                        
+
                         // Update move history with the promoted piece
-                        if (!moveHistory.GetMoves().empty()) {
+                        if (!moveHistory.GetMoves().empty())
+                        {
                             moveHistory.GetLastMoveMutable().promotedTo = static_cast<PieceType>(piece.type);
                         }
 
@@ -548,7 +552,7 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
                         int opponentColor = gameState->getCurrentPlayer();
                         Vector2 opponentKingPos = (opponentColor == 1) ? whiteKingPosition : blackKingPosition;
                         bool opponentInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPos, opponentColor, *this);
-                        
+
                         if (opponentInCheck)
                         {
                             if (MoveValidator::IsCheckmate(pieces, opponentColor, *this))
@@ -558,17 +562,18 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
                                 Checkmate = true;
                             }
                         }
-                        
+
                         if (!Checkmate && MoveValidator::IsStatemate(pieces, opponentColor, *this))
                         {
                             Stalemate = true;
                         }
-                        
+
                         kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
-                        if (!moveHistory.GetMoves().empty()) {
+                        if (!moveHistory.GetMoves().empty())
+                        {
                             moveHistory.GetLastMoveMutable().isCheck = opponentInCheck && !Checkmate;
                         }
-                        
+
                         break;
                     }
                 }
@@ -696,22 +701,22 @@ void Board::UnloadPieces()
     }
 }
 
-bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to) 
+bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
 {
     const std::vector<Piece> piecesBeforeMove = pieces;
-    pieces[pieceIndex].position = to; 
+    pieces[pieceIndex].position = to;
 
     // Mark rook as moved after successful move
     if (pieces[pieceIndex].type == ROOK)
     {
-        pieces[pieceIndex].hasMoved = true; 
+        pieces[pieceIndex].hasMoved = true;
     }
 
     if (pieces[pieceIndex].type == KING)
     {
         if (pieces[pieceIndex].color == 0)
         { // Black King
-             blackKingPosition = to;
+            blackKingPosition = to;
         }
         else
         { // White King
@@ -736,13 +741,13 @@ bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
             break;
         }
     }
-    
-    // En passant detection (diagonal pawn move with no piece at destination) 
+
+    // En passant detection (diagonal pawn move with no piece at destination)
     if (!wasCapture && pieces[pieceIndex].type == PAWN)
     {
         int fromX = static_cast<int>(std::round((from.x - boardPosition.x) / squareSize));
         int toX = static_cast<int>(std::round((to.x - boardPosition.x) / squareSize));
-        
+
         if (std::abs(toX - fromX) == 1)
         {
             wasEnPassant = true;
@@ -751,22 +756,23 @@ bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
     }
 
     // After the current player moves, game-over checks must target the opponent.
-    int opponentColor = 1 - gameState -> getCurrentPlayer();
-    Vector2 opponentKingPos = (opponentColor == 1) ? whiteKingPosition : blackKingPosition; 
+    int opponentColor = 1 - gameState->getCurrentPlayer();
+    Vector2 opponentKingPos = (opponentColor == 1) ? whiteKingPosition : blackKingPosition;
     bool opponentInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPos, opponentColor, *this);
 
     if (opponentInCheck)
     {
         // 0 for black and 1 for white
-        if (!PawnPromo && MoveValidator::IsCheckmate(pieces, opponentColor,*this))
+        if (!PawnPromo && MoveValidator::IsCheckmate(pieces, opponentColor, *this))
         {
             if (gameState->getCurrentPlayer() == 1)
                 Cwhite = true;
             Checkmate = true;
-            return true; // Game over - no more record needed 
+            SaveBoardSnapshot();
+            return true; // Game over - no more record needed
         }
     }
-    
+
     if (!Checkmate && !PawnPromo)
     {
         if (MoveValidator::IsStatemate(pieces, opponentColor, *this))
@@ -844,7 +850,7 @@ bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
                 else
                 {
                     record.disambiguation = std::string(1, static_cast<char>('a' + sourceFile)) +
-                                                                         std::string(1, static_cast<char>('1' + sourceRank));
+                                            std::string(1, static_cast<char>('1' + sourceRank));
                 }
             }
         }
@@ -880,8 +886,137 @@ bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
     // Cache whether the new current player's king is in check after switch.
     kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
 
+    SaveBoardSnapshot();
     ClearSelection(); // Clear the move highlight after move is made
-    return true;                      
+    return true;
+}
+
+void Board::SaveBoardSnapshot()
+{
+    BoardSnapshot snap;
+    snap.pieces = pieces;
+    snap.currentPlayer = gameState->getCurrentPlayer();
+    snap.whiteKingPosition = whiteKingPosition;
+    snap.blackKingPosition = blackKingPosition;
+    snap.whiteScore = gameState->getWhiteScore();
+    snap.blackScore = gameState->getBlackScore();
+    snap.whiteCapturedCount = whiteCapturedCount;
+    snap.blackCapturedCount = blackCapturedCount;
+    snap.kingInCheck = kingInCheck;
+    snap.hasLastMove = gameState->getHasLastMove();
+    snap.lastMoveFrom = gameState->getLastMoveFrom();
+    snap.lastMoveTo = gameState->getLastMoveTo();
+    snap.enPassantLastMove = MoveSimulation::lastMove;
+    boardHistory.push_back(snap);
+}
+
+void Board::RestoreBoardSnapshot(const BoardSnapshot &snap)
+{
+    pieces = snap.pieces;
+    whiteKingPosition = snap.whiteKingPosition;
+    blackKingPosition = snap.blackKingPosition;
+    whiteCapturedCount = snap.whiteCapturedCount;
+    blackCapturedCount = snap.blackCapturedCount;
+    kingInCheck = snap.kingInCheck;
+    MoveSimulation::lastMove = snap.enPassantLastMove;
+
+    // Restore GameState fields
+
+    gameState->setCurrentPlayer(snap.currentPlayer);
+    gameState->setWhiteScore(snap.whiteScore);
+    gameState->setBlackScore(snap.blackScore);
+    gameState->setWhiteCapturedCount(snap.whiteCapturedCount);
+    gameState->setBlackCapturedCount(snap.blackCapturedCount);
+
+    if (snap.hasLastMove)
+    {
+        gameState->setLastMove(snap.lastMoveFrom, snap.lastMoveTo);
+    }
+    else
+    {
+        gameState->clearLastMove();
+    }
+}
+
+void Board::TakeLiveSnapshot()
+{
+    savedLiveSnapshot.pieces = pieces;
+    savedLiveSnapshot.currentPlayer = gameState->getCurrentPlayer();
+    savedLiveSnapshot.whiteKingPosition = whiteKingPosition;
+    savedLiveSnapshot.blackKingPosition = blackKingPosition;
+    savedLiveSnapshot.whiteScore = gameState->getWhiteScore();
+    savedLiveSnapshot.blackScore = gameState->getBlackScore();
+    savedLiveSnapshot.whiteCapturedCount = whiteCapturedCount;
+    savedLiveSnapshot.blackCapturedCount = blackCapturedCount;
+    savedLiveSnapshot.kingInCheck = kingInCheck;
+    savedLiveSnapshot.hasLastMove = gameState->getHasLastMove();
+    savedLiveSnapshot.lastMoveFrom = gameState->getLastMoveFrom();
+    savedLiveSnapshot.lastMoveTo = gameState->getLastMoveTo();
+    savedLiveSnapshot.enPassantLastMove = MoveSimulation::lastMove;
+    hasSavedLiveState = true;
+}
+
+void Board::RestoreLiveSnapshot()
+{
+    if (!hasSavedLiveState)
+        return;
+    RestoreBoardSnapshot(savedLiveSnapshot);
+    hasSavedLiveState = false;
+}
+
+void Board::GoToMove(int moveIndex)
+{
+    if (boardHistory.empty())
+        return;
+    if (moveIndex < 0)
+        moveIndex = 0;
+    if (moveIndex >= static_cast<int>(boardHistory.size()))
+        moveIndex = static_cast<int>(boardHistory.size()) - 1;
+
+    RestoreBoardSnapshot(boardHistory[moveIndex]);
+    reviewMoveIndex = moveIndex;
+    isReviewing = true;
+}
+
+void Board::GoBackOne()
+{
+    if (!isReviewing)
+    {
+        TakeLiveSnapshot();
+        GoToMove(static_cast<int>(boardHistory.size()) - 2);
+    }
+    else
+    {
+        GoToMove(reviewMoveIndex - 1);
+    }
+}
+
+void Board::GoForwardOne()
+{
+    if (!isReviewing)
+        return;
+
+    int latestIdx = static_cast<int>(boardHistory.size()) - 1;
+
+    if (reviewMoveIndex >= latestIdx)
+    {
+        ExitReviewMode();
+    }
+    else
+    {
+        GoToMove(reviewMoveIndex + 1);
+    }
+}
+
+void Board::ExitReviewMode()
+{
+    if (!isReviewing)
+        return;
+
+    RestoreLiveSnapshot();
+    reviewMoveIndex = -1;
+    isReviewing = false;
+    ClearSelection();
 }
 
 // For Drag and Drop (Basically moving)
@@ -1068,7 +1203,6 @@ void Board::UpdateDragging()
             }
         }
     }
-
 }
 
 void Board::HandleClickToMove()
@@ -1183,8 +1317,7 @@ void Board::HandleClickToMove()
     }
 }
 
- 
-bool Board::ApplyEngineMove(const EngineMove& move) 
+bool Board::ApplyEngineMove(const EngineMove &move)
 {
 
     if(!move.isValid) return false; 
@@ -1194,9 +1327,7 @@ bool Board::ApplyEngineMove(const EngineMove& move)
     for ( int i = 0; i < static_cast<int>(pieces.size()); i++) 
     {
 
-        if(!pieces[i].captured
-            && std::abs(pieces[i].position.x - move.from.x) < 1.0f
-            && std::abs(pieces[i].position.y - move.from.y) < 1.0f)
+        if (!pieces[i].captured && std::abs(pieces[i].position.x - move.from.x) < 1.0f && std::abs(pieces[i].position.y - move.from.y) < 1.0f)
         {
             pieceIndex = i;
             break;
@@ -1208,8 +1339,8 @@ bool Board::ApplyEngineMove(const EngineMove& move)
     Vector2 originalPos = pieces[pieceIndex].position; 
     Vector2 newPos = move.to; 
 
-    // Validate via existing pipeline (also executes castling / enpassant) 
-    if(!MoveValidator::IsMoveValid(pieces[pieceIndex], newPos, pieces, originalPos, *this))
+    // Validate via existing pipeline (also executes castling / enpassant)
+    if (!MoveValidator::IsMoveValid(pieces[pieceIndex], newPos, pieces, originalPos, *this))
         return false;
 
     // For engine moves the UI must never appear – the engine
@@ -1221,7 +1352,7 @@ bool Board::ApplyEngineMove(const EngineMove& move)
     if (pieces[pieceIndex].type == PAWN)
     {
         int promotionRank = (pieces[pieceIndex].color == 0) ? 7 : 0;
-        
+
         int newY = static_cast<int>(roundf((newPos.y - boardPosition.y) / squareSize));
         if (newY == promotionRank)
         {
@@ -1233,22 +1364,22 @@ bool Board::ApplyEngineMove(const EngineMove& move)
 
             pieces[pieceIndex].type = promotedType;
             pieces[pieceIndex].texture = promotionTexture[(pieces[pieceIndex].color == 0)
-                                                             ? (promotedType - 1)
-                                                             : (promotedType - 1 + 6)];
+                                                              ? (promotedType - 1)
+                                                              : (promotedType - 1 + 6)];
             PawnPromo = false;
         }
     }
 
     // Track king positions
-    if(pieces[pieceIndex].type == KING)
+    if (pieces[pieceIndex].type == KING)
     {
-        if(pieces[pieceIndex].color == 0)
+        if (pieces[pieceIndex].color == 0)
             blackKingPosition = newPos;
         else
             whiteKingPosition = newPos;
     }
 
-    if(pieces[pieceIndex].type == ROOK)
+    if (pieces[pieceIndex].type == ROOK)
         pieces[pieceIndex].hasMoved = true;
 
     // Handle captures
@@ -1256,10 +1387,7 @@ bool Board::ApplyEngineMove(const EngineMove& move)
 
     for (int i = 0; i < static_cast<int>(pieces.size()); i++)
     {
-        if(!pieces[i].captured
-            && std::abs(pieces[i].position.x - newPos.x) < 1.0f
-            && std::abs(pieces[i].position.y - newPos.y) < 1.0f
-            && pieces[i].color != pieces[pieceIndex].color)
+        if (!pieces[i].captured && std::abs(pieces[i].position.x - newPos.x) < 1.0f && std::abs(pieces[i].position.y - newPos.y) < 1.0f && pieces[i].color != pieces[pieceIndex].color)
         {
             wasCapture = true;
             CapturePiece(i);
@@ -1280,53 +1408,53 @@ bool Board::ApplyEngineMove(const EngineMove& move)
 
     // Check / checkmate / stalemate detection
     int opponentColor = 1 - gameState->getCurrentPlayer();
-    Vector2 opponentKingPos = (opponentColor == 1 ) ? whiteKingPosition : blackKingPosition; 
-    bool opponentInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPos, opponentColor, *this); 
-    
-    if (opponentInCheck) 
+    Vector2 opponentKingPos = (opponentColor == 1) ? whiteKingPosition : blackKingPosition;
+    bool opponentInCheck = MoveValidator::IsKingInCheck(pieces, opponentKingPos, opponentColor, *this);
+
+    if (opponentInCheck)
     {
-        if(MoveValidator::IsCheckmate(pieces, opponentColor, *this))
+        if (MoveValidator::IsCheckmate(pieces, opponentColor, *this))
         {
-            if(gameState->getCurrentPlayer() == 1)
-                Cwhite = true; 
-            Checkmate = true; 
+            if (gameState->getCurrentPlayer() == 1)
+                Cwhite = true;
+            Checkmate = true;
         }
     }
 
     if (!Checkmate && MoveValidator::IsStatemate(pieces, opponentColor, *this))
     {
-        Stalemate = true; 
+        Stalemate = true;
     }
 
-    // Build and store MoveRecord 
-    MoveRecord record; 
+    // Build and store MoveRecord
+    MoveRecord record;
 
-    record.moveNumber = static_cast<int>(moveHistory.GetMoves().size()) / 2 + 1; 
+    record.moveNumber = static_cast<int>(moveHistory.GetMoves().size()) / 2 + 1;
     record.pieceType = static_cast<PieceType>(pieces[pieceIndex].type);
-    record.pieceColor = pieces[pieceIndex].color; 
-    record.from = originalPos; 
-    record.to = newPos; 
-    record.isCapture = wasCapture; 
-    record.isCheck = opponentInCheck && !Checkmate; 
-    
-    if(pieces[pieceIndex].type == KING)
+    record.pieceColor = pieces[pieceIndex].color;
+    record.from = originalPos;
+    record.to = newPos;
+    record.isCapture = wasCapture;
+    record.isCheck = opponentInCheck && !Checkmate;
+
+    if (pieces[pieceIndex].type == KING)
     {
-        float dx = std::abs(newPos.x - originalPos.x); 
-        if(dx > squareSize * 1.5f) 
+        float dx = std::abs(newPos.x - originalPos.x);
+        if (dx > squareSize * 1.5f)
         {
             record.isCastleKing = (newPos.x > originalPos.x);
-            record.isCastleQueen = (newPos.x < originalPos.x); 
+            record.isCastleQueen = (newPos.x < originalPos.x);
         }
     }
-    moveHistory.AddMove(record); 
+    moveHistory.AddMove(record);
 
-    gameState->setLastMove(originalPos, newPos); 
+    gameState->setLastMove(originalPos, newPos);
     gameState->switchPlayer();
-    kingInCheck = opponentInCheck && !Checkmate && !Stalemate; 
+    kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
 
-    return true; 
+    SaveBoardSnapshot();
+    return true;
 }
-
 
 void Board::Reset()
 {
@@ -1358,7 +1486,7 @@ void Board::Reset()
     // Reset shared lastMove state so en passant does not carry across games.
     MoveSimulation::lastMove = std::make_tuple(Piece{}, Vector2{0.0f, 0.0f}, Vector2{0.0f, 0.0f});
 
-    // reset click selected 
+    // reset click selected
     clickSelectedPieceIndex = -1;
 
     // Reset captured pieces display counters
@@ -1368,7 +1496,12 @@ void Board::Reset()
 
     moveHistory.Clear();
 
-    uciMoveList.clear(); 
+    uciMoveList.clear();
+
+    boardHistory.clear();
+    hasSavedLiveState = false;
+    isReviewing = false;
+    reviewMoveIndex = -1;
 
     // Clear move highlights
     ClearSelection();
