@@ -8,3 +8,13 @@ game
 stockfish
 stockfish.exe
 *.idea
+
+release/
+dist/
+engines/
+
+# Will not ignore license and notice files
+!LICENSE
+!LICENSE.txt
+!COPYING.txt
+!THIRD_PARTY_NOTICES.txt

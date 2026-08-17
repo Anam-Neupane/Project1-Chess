@@ -76,7 +76,7 @@ bool StockfishEngine::init()
     ZeroMemory(&pi, sizeof(pi));
 
     char exeName[] = "stockfish.exe";
-    if (!CreateProcessA(NULL, exeName, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
+    if (!CreateProcessA(NULL, exeName, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
     {
         std::cerr << "StockfishEngine: Failed to launch stockfish.exe. "
                   << "Is it in the project root directory? Error:"
