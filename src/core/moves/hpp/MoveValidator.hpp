@@ -31,6 +31,9 @@ namespace MoveValidator {
 
     // Check if the given color is in stalemate (no legal moves, king not in check) 
     bool IsStatemate(std::vector<Piece>& pieces, int kingColor, Board & board); 
+
+    // Check if the material on the board makes a checkmate impossible for both sides. 
+    bool IsInsufficientMaterial(const std::vector<Piece>& pieces); 
 };
 
 #endif // MOVEVALID_HPP

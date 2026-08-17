@@ -568,6 +568,11 @@ void Board::HandlePawnPromotion(int color, Vector2 position)
                             Stalemate = true;
                         }
 
+                        if (!Checkmate && !Stalemate && MoveValidator::IsInsufficientMaterial(pieces))
+                        {
+                            InsuffMaterial = true; 
+                        }
+
                         kingInCheck = opponentInCheck && !Checkmate && !Stalemate;
                         if (!moveHistory.GetMoves().empty())
                         {
@@ -768,7 +773,9 @@ bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
             if (gameState->getCurrentPlayer() == 1)
                 Cwhite = true;
             Checkmate = true;
+            kingInCheck = false;
             SaveBoardSnapshot();
+            ClearSelection();
             return true; // Game over - no more record needed
         }
     }
@@ -778,8 +785,18 @@ bool Board::TryExecuteMove(int pieceIndex, Vector2 from, Vector2 to)
         if (MoveValidator::IsStatemate(pieces, opponentColor, *this))
         {
             Stalemate = true;
+            kingInCheck = false;
+            ClearSelection();
             return true;
         }
+    }
+
+    if (!Checkmate && !Stalemate && !PawnPromo && MoveValidator::IsInsufficientMaterial(pieces))
+    {
+        InsuffMaterial = true;
+        kingInCheck = false;
+        ClearSelection();
+        return true;
     }
 
     // This records moves after it happened and before the player is changed
@@ -919,6 +936,7 @@ void Board::RestoreBoardSnapshot(const BoardSnapshot &snap)
     blackCapturedCount = snap.blackCapturedCount;
     kingInCheck = snap.kingInCheck;
     MoveSimulation::lastMove = snap.enPassantLastMove;
+    ClearSelection();
 
     // Restore GameState fields
 
@@ -976,6 +994,7 @@ void Board::GoToMove(int moveIndex)
     RestoreBoardSnapshot(boardHistory[moveIndex]);
     reviewMoveIndex = moveIndex;
     isReviewing = true;
+    ClearSelection();
 }
 
 void Board::GoBackOne()
@@ -1426,6 +1445,11 @@ bool Board::ApplyEngineMove(const EngineMove &move)
         Stalemate = true;
     }
 
+    if (!Checkmate && !Stalemate && MoveValidator::IsInsufficientMaterial(pieces))
+    {
+        InsuffMaterial = true; 
+    }
+
     // Build and store MoveRecord
     MoveRecord record;
 
@@ -1466,6 +1490,7 @@ void Board::Reset()
 
     Checkmate = false;
     Stalemate = false;
+    InsuffMaterial = false; 
     PawnPromo = false;
     Cwhite = false;
     kingInCheck = false;

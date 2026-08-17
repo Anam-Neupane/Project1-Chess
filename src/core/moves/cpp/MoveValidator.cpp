@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <raymath.h>
+#include <cmath>
 
 // Define lastMove in MoveSimulation namespace
 std::tuple<Piece, Vector2, Vector2> MoveSimulation::lastMove = std::make_tuple(Piece{}, Vector2{0.0f, 0.0f}, Vector2{0.0f, 0.0f});
@@ -360,6 +361,82 @@ bool MoveValidator::IsStatemate(std::vector<Piece> &pieces, int kingColor, Board
     // NO Legal Move and king not in check = stalemate
     return true;
 }
+
+bool MoveValidator::IsInsufficientMaterial(const std::vector<Piece>& pieces) 
+{
+    int whiteBishops = 0, whiteKnights = 0; 
+    int blackBishops = 0, blackKnights = 0; 
+
+    // Square color of the bishop we find per side: 
+    //0 = light square, 1 = dark square, -1 = no bishop seen yet; 
+    int whiteBishopSquareColor = -1; 
+    int blackBishopSquareColor = -1; 
+
+    for (const auto &piece : pieces) 
+    {
+        if (piece.captured) continue; 
+
+        if (piece.type == KING) continue; 
+
+        if (piece.type == PAWN || piece.type == ROOK || piece.type == QUEEN) 
+        {
+            return false; 
+        }
+
+        if (piece.type == BISHOP) 
+        {
+            // conver the pixel position into a board square, then figure out 
+            // whether that square is light or dark: (col + row) % 2
+
+            int col = static_cast<int>(std::round((piece.position.x - boardPosition.x) / squareSize)); 
+            int row = static_cast<int>(std::round((piece.position.y - boardPosition.y) / squareSize)); 
+            int squareColor = (col + row) % 2; 
+
+            if (piece.color == 1) 
+            {
+                whiteBishops++; 
+                whiteBishopSquareColor = squareColor; 
+            }
+            else
+            {
+                blackBishops++; 
+                blackBishopSquareColor = squareColor; 
+            }
+        }
+        else if (piece.type == KNIGHT) 
+        {
+            if (piece.color == 1) whiteKnights ++ ; 
+            else blackKnights ++; 
+        }
+    }
+
+    // King vs king
+     if(whiteBishops == 0 && whiteKnights == 0 && blackBishops == 0 && blackKnights == 0) 
+     {
+        return true; 
+     }
+
+     // One minor piece 
+     bool whiteHasOnlyMinor = (whiteBishops + whiteKnights == 1); 
+     bool blackHasOnlyMinor = (blackBishops + blackKnights == 1); 
+
+     if ((whiteHasOnlyMinor && blackBishops == 0 && blackKnights == 0) 
+    || (blackHasOnlyMinor && whiteBishops == 0 && whiteKnights == 0))
+    {
+        return true; 
+    }
+
+    // Two bishops (one per side) that both roam light or both roam dark squares 
+    // can never produce a mate. Opposite-colored bishops can mate. 
+    if (whiteKnights == 0 && blackKnights == 0 && whiteBishops == 1 && blackBishops == 1 && whiteBishopSquareColor == blackBishopSquareColor) 
+    {
+        return true; 
+    }
+
+    // other wise keep playing 
+    return false; 
+}
+
 
 bool MoveValidator::IsMoveInValidMoves(const Vector2 &targetPosition, const std::vector<Vector2> &validMoves)
 {

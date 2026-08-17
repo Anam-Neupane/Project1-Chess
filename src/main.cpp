@@ -5,6 +5,7 @@
 #include <raylib.h>
 #include "raymath.h"
 #include "engine/StockfishEngine.hpp"
+#include "engine/NeuralEngine.hpp"
 #include "ui/slider.hpp"
 #include <algorithm>
 // #include <cstddef>
@@ -22,6 +23,13 @@ enum AppState
 bool Paused = false;
 
 int engineColor = 0; // 0 = black, 1 = white
+
+enum EngineType
+{
+    ENGINE_STOCKFISH,
+    ENGINE_NEURAL
+};
+EngineType engineType = ENGINE_STOCKFISH;
 
 int main()
 {
@@ -47,8 +55,6 @@ int main()
     RenderTexture2D target = LoadRenderTexture(gameScreenWidth, gameScreenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
-
-
     Button startButton{"resource/Picture1.png", {0, 0}, 0.45};
     Button engineButton{"resource/Picture2.png", {0, 0}, 0.45};
     Button exitButton{"resource/Picture3.png", {0, 0}, 0.45};
@@ -58,7 +64,7 @@ int main()
     Button resignButton{"resource/resign.png", {0, 0}, 0.35};
     Button whitePlayer{"resource/white.png", {0, 0}, 0.35};
     Button blackPlayer{"resource/black.png", {0, 0}, 0.35};
-    Slider engineDifficultySlider({0.0f, 0.0f}, 360.0f, 1, 20, 10);
+    Slider engineDifficultySlider({0.0f, 0.0f}, 390.0f, 1, 20, 10);
 
     bool exit = false;
 
@@ -75,11 +81,12 @@ int main()
     // Current app state (menu navigation)
     AppState appState = MAIN_MENU;
 
-    StockfishEngine *engine = nullptr;
+    ChessEngine *engine = nullptr;
     bool engineLaunchFailed = false;
     bool enginePlayerselect = false;
     std::string engineLaunchErrorMessage;
     std::size_t lastObservedUciMoveCount = 0;
+    bool engineQueryIssuedForCurrentPosition = false;
     bool deferEngineMoveOneFrame = false;
 
     auto shutdownEngine = [&]()
@@ -107,20 +114,26 @@ int main()
             chessGameState.flipBoard();
         }
 
-        engine = new StockfishEngine();
+        if (engineType == ENGINE_NEURAL)
+            engine = new NeuralEngine();
+        else
+            engine = new StockfishEngine();
+
         if (!engine->init())
         {
-            std::cerr << "Failed to start Stockfish. Is stockfish.exe in project root?" << std::endl;
-            shutdownEngine();
-            chessGameState.setGameMode(GameMode::PVP_LOCAL);
-            appState = MAIN_MENU;
-            engineLaunchFailed = true;
-            engineLaunchErrorMessage = "Engine unavailable. You can still play local multiplayer or exit from the menu.";
-            return;
+            const char *engineName = (engineType == ENGINE_NEURAL) ? "Neural Bot" : "Stockfish"; 
+            std::cerr << " Failed to start " << engineName << "." << std::endl; 
+            shutdownEngine(); 
+            chessGameState.setGameMode(GameMode::PVP_LOCAL); 
+            appState = MAIN_MENU; 
+            engineLaunchFailed = true; 
+            engineLaunchErrorMessage = std::string(engineName) + " could not start. Please extract the complete release \nZIP before running the game. "; 
+            return; 
         }
 
         engine->setDifficulty(engineDifficultySlider.GetValue());
         engine->newGame();
+        engineQueryIssuedForCurrentPosition = false;
         appState = ENGINE_GAME;
     };
 
@@ -161,6 +174,7 @@ int main()
         {
             lastObservedUciMoveCount = B1.uciMoveList.size();
             deferEngineMoveOneFrame = true;
+            engineQueryIssuedForCurrentPosition = false;
         }
 
         // Handle input based on the current app state
@@ -172,6 +186,14 @@ int main()
 
             if (enginePlayerselect)
             {
+                float toggleW = 280.0f, toggleH = 42.0f;
+                Rectangle engineToggleRect = {(gameScreenWidth - toggleW) / 2.0f, 310.0f, toggleW, toggleH};
+                if (mousePressed && CheckCollisionPointRec(mousePosition, engineToggleRect))
+                {
+                    engineType = (engineType == ENGINE_STOCKFISH) ? ENGINE_NEURAL : ENGINE_STOCKFISH;
+                    sliderConsumedThisFrame = true;
+                }
+
                 Vector2 whiteSize = whitePlayer.GetSize();
                 Vector2 blackSize = blackPlayer.GetSize();
                 int gap = 50;
@@ -179,12 +201,12 @@ int main()
                 float totalWidth = whiteSize.x + gap + blackSize.x;
                 float startX = (gameScreenWidth - totalWidth) / 2.0f;
                 float sliderX = (gameScreenWidth - 360.0f) / 2.0f;
-                float sliderY = 377.0f;
+                float sliderY = 395.0f;
 
                 engineDifficultySlider.SetPosition({sliderX, sliderY});
-                sliderConsumedThisFrame = engineDifficultySlider.HandleInput(mousePosition,
-                                                                            mousePressed,
-                                                                            IsMouseButtonReleased(MOUSE_BUTTON_LEFT));
+                sliderConsumedThisFrame = sliderConsumedThisFrame || engineDifficultySlider.HandleInput(mousePosition,
+                                                                                                        mousePressed,
+                                                                                                        IsMouseButtonReleased(MOUSE_BUTTON_LEFT));
 
                 whitePlayer.SetPosition({startX, buttonsY});
                 blackPlayer.SetPosition({startX + whiteSize.x + gap, buttonsY});
@@ -260,19 +282,19 @@ int main()
 
         if (appState == GAME || appState == ENGINE_GAME)
         {
-            if (IsKeyPressed(KEY_SPACE) && !B1.Checkmate && !B1.Stalemate)
+            if (IsKeyPressed(KEY_SPACE) && !B1.Checkmate && !B1.Stalemate && !B1.Resigned && !B1.InsuffMaterial)
             {
                 Paused = !Paused;
             }
 
             // Toggle valid move highlights with 'M' key
-            if (IsKeyPressed(KEY_M) && !Paused && !B1.Checkmate && !B1.Stalemate)
+            if (IsKeyPressed(KEY_M) && !Paused && !B1.Checkmate && !B1.Stalemate && !B1.Resigned && !B1.InsuffMaterial)
             {
                 B1.ToggleShowValidMoves();
             }
 
             //  The trigger key can be changed later
-            if (IsKeyPressed(KEY_H) && !Paused && !B1.Checkmate && !B1.Stalemate)
+            if (IsKeyPressed(KEY_H) && !Paused)
             {
                 B1.showMoveHistory = !B1.showMoveHistory;
             }
@@ -317,7 +339,7 @@ int main()
             }
             reviewRightWasDown = rightDown;
 
-            if (!B1.IsReviewing() && !B1.Checkmate && !B1.Stalemate && !B1.Resigned && resignButton.isPressed(mousePosition, mousePressed))
+            if (!B1.IsReviewing() && !B1.Checkmate && !B1.Stalemate && !B1.InsuffMaterial && !B1.Resigned && resignButton.isPressed(mousePosition, mousePressed))
             {
                 B1.Resigned = true;
                 B1.resignedPlayer = chessGameState.getCurrentPlayer();
@@ -325,7 +347,7 @@ int main()
             }
         }
 
-        if ((appState == GAME || appState == ENGINE_GAME) && (B1.Checkmate || B1.Stalemate || B1.Resigned) && !Paused)
+        if ((appState == GAME || appState == ENGINE_GAME) && (B1.Checkmate || B1.Stalemate || B1.InsuffMaterial || B1.Resigned) && !Paused && !B1.IsReviewing())
         {
             // position buttons in the size panel
             restartButton.SetDrawScale(0.70f);
@@ -334,7 +356,7 @@ int main()
 
             float panelButtonStartY = 320.f;
             Button::UpdateThreeButtonPositionsInPanel(restartButton,
-                 menuButton, exitButton, 914.0f, 380.0f, panelButtonStartY);
+                                                      menuButton, exitButton, 914.0f, 380.0f, panelButtonStartY);
 
             if (restartButton.isPressed(mousePosition, mousePressed))
             {
@@ -361,7 +383,7 @@ int main()
             }
         }
 
-        if ((appState == GAME || appState == ENGINE_GAME) && Paused)
+        if ((appState == GAME || appState == ENGINE_GAME) && Paused && !B1.IsReviewing())
         {
 
             restartButton.SetDrawScale(1.0f);
@@ -420,7 +442,6 @@ int main()
             float panelX = 350.0f, panelY = 190.0f, panelW = 600.0f, panelH = 600.0f;
             DrawRectangleRounded({panelX, panelY, panelW, panelH}, 0.06f, 8, Fade(WHITE, 0.85f));
 
-
             DrawRectangleRounded({panelX + 10, panelY + 15, panelW - 20, 4}, 0.5f, 4, BROWN);
 
             const char *menuTitle = "CHESS";
@@ -463,6 +484,14 @@ int main()
                 int subtitleWidth = MeasureText(subtitle, subtitleSize);
                 DrawText(subtitle, panelX + (panelWidth - subtitleWidth) / 2, panelY + 70, subtitleSize, LIGHTGRAY);
 
+                Rectangle engineToggleRect = {(gameScreenWidth - 280.f) / 2.0f, 310.0f, 280.0f, 42.0f};
+                DrawRectangleRounded(engineToggleRect, 0.2f, 8, (engineType == ENGINE_NEURAL) ? BLACK : Color{90, 90, 90, 255});
+                DrawRectangleRoundedLines(engineToggleRect, 0.2f, 8, RAYWHITE);
+                const char *engineLabel = (engineType == ENGINE_STOCKFISH) ? "Engine: Stockfish" : "Engine: Neural Bot";
+                int engineLabelW = MeasureText(engineLabel, 22);
+                int engineLabelY = (int)(engineToggleRect.y + (engineToggleRect.height - 22) / 2.0f);
+                DrawText(engineLabel, (int)(engineToggleRect.x + (engineToggleRect.width - engineLabelW) / 2.0f), engineLabelY, 22, RAYWHITE);
+
                 engineDifficultySlider.Draw("Engine difficulty");
 
                 Vector2 whiteSize = whitePlayer.GetSize();
@@ -498,8 +527,8 @@ int main()
 
                 int errorTextSize = 24;
                 int errorTextWidth = MeasureText(engineLaunchErrorMessage.c_str(), errorTextSize);
-                DrawText(engineLaunchErrorMessage.c_str(), panelX + (panelWidth - errorTextWidth) / 2, panelY + 70, errorTextSize, WHITE);
-
+                DrawText(engineLaunchErrorMessage.c_str(), panelX + (panelWidth - errorTextWidth) / 2, panelY + 60, errorTextSize, WHITE);
+                
                 drawHint("Click anywhere to remove this overlay", panelX + panelWidth / 2, panelY + panelHeight - 34, 20, RAYWHITE);
             }
         }
@@ -552,7 +581,7 @@ int main()
 
                 // Side panel
                 DrawRectangle(914, 55, sidePanelWidth + 180, 910, BROWN);
-                bool gameOver = B1.Checkmate || B1.Stalemate || B1.Resigned;
+                bool gameOver = B1.Checkmate || B1.Stalemate || B1.InsuffMaterial || B1.Resigned;
                 if (!gameOver)
                 {
                     B1.DrawPlayer();
@@ -560,7 +589,11 @@ int main()
 
                 B1.DrawPieces();
 
-                if (B1.PawnPromo)
+                if (B1.IsReviewing())
+                {
+                    B1.DrawMoveHistory(B1.GetReviewIndex());
+                }
+                else if (B1.PawnPromo)
                 {
                     int windowWidth = gameScreenWidth;   // Virtual window width
                     int windowHeight = gameScreenHeight; // Virtual window height
@@ -569,8 +602,8 @@ int main()
                     int PosY = ((windowHeight - 40) / 2 - 30);
 
                     float cardX = windowWidth / 4.0f;
-                    float cardY = windowHeight / 2.8f; 
-                    float cardW = windowWidth / 2.0f; 
+                    float cardY = windowHeight / 2.8f;
+                    float cardW = windowWidth / 2.0f;
                     float cardH = windowHeight / 4.0f;
 
                     DrawRectangleRounded({cardX, cardY, cardW, cardH}, 0.06f, 8, Fade(LIGHTGRAY, 0.55f));
@@ -586,45 +619,72 @@ int main()
 
                 else if (B1.Checkmate)
                 {
-                    const char *winTitle = "CHECKMATE"; 
+                    const char *winTitle = "CHECKMATE";
                     const char *winner = B1.Cwhite ? "White Wins!" : "Black Wins!";
-                    Color accent = {255, 203, 107, 220}; 
+                    Color accent = {255, 203, 107, 220};
 
                     DrawRectangleRounded({922, 70, 364, 180}, 0.06f, 8, Fade(BLACK, 0.55f));
                     DrawRectangleRoundedLines({922, 70, 364, 180}, 0.06f, 8, Fade(RAYWHITE, 0.15f));
-                    DrawRectangleRounded({932, 80, 344, 4}, 0.5f, 4, accent); 
+                    DrawRectangleRounded({932, 80, 344, 4}, 0.5f, 4, accent);
 
                     int titleW = MeasureText(winTitle, 36);
-                    DrawText(winTitle, 1104 - titleW / 2, 110, 36, RAYWHITE); 
-                    int winnerW = MeasureText(winner, 24); 
-                    DrawText(winner, 1104 - winnerW / 2, 165, 24, BEIGE); 
+                    DrawText(winTitle, 1104 - titleW / 2, 110, 36, RAYWHITE);
+                    int winnerW = MeasureText(winner, 24);
+                    DrawText(winner, 1104 - winnerW / 2, 165, 24, BEIGE);
 
                     // Buttons
-                    restartButton.SetDrawScale(0.70f); 
-                    menuButton.SetDrawScale(0.70f); 
-                    exitButton.SetDrawScale(0.70f); 
+                    restartButton.SetDrawScale(0.70f);
+                    menuButton.SetDrawScale(0.70f);
+                    exitButton.SetDrawScale(0.70f);
                     Button::UpdateThreeButtonPositionsInPanel(restartButton, menuButton, exitButton, 914.0f, 380.0f, 320.0f);
-                    restartButton.DrawWithHover(mousePosition); 
-                    menuButton.DrawWithHover(mousePosition); 
-                    exitButton.DrawWithHover(mousePosition);  
+                    restartButton.DrawWithHover(mousePosition);
+                    menuButton.DrawWithHover(mousePosition);
+                    exitButton.DrawWithHover(mousePosition);
                 }
 
                 else if (B1.Stalemate)
                 {
                     const char *title = "DRAW";
-                    Color accent = {180, 180, 180, 220}; 
+                    Color accent = {180, 180, 180, 220};
 
                     DrawRectangleRounded({922, 70, 364, 180}, 0.06f, 8, Fade(BLACK, 0.55f));
-                    DrawRectangleRoundedLines({922, 70, 364, 180}, 0.06f, 8 , Fade(RAYWHITE, 0.15f));
-                    DrawRectangleRounded({932, 80, 344, 4} , 0.5f , 4, accent); 
-                    
-                    int titleW = MeasureText(title, 36); 
-                    DrawText(title, 1104 - titleW / 2, 135, 36, RAYWHITE); 
+                    DrawRectangleRoundedLines({922, 70, 364, 180}, 0.06f, 8, Fade(RAYWHITE, 0.15f));
+                    DrawRectangleRounded({932, 80, 344, 4}, 0.5f, 4, accent);
+
+                    int titleW = MeasureText(title, 36);
+                    DrawText(title, 1104 - titleW / 2, 135, 36, RAYWHITE);
 
                     restartButton.SetDrawScale(0.70f);
-                    menuButton.SetDrawScale(0.70f); 
-                    exitButton.SetDrawScale(0.70f); 
-                    
+                    menuButton.SetDrawScale(0.70f);
+                    exitButton.SetDrawScale(0.70f);
+
+                    Button::UpdateThreeButtonPositionsInPanel(
+                        restartButton, menuButton, exitButton, 914.0f, 380.0f, 320.0f);
+                    // Draw buttons
+                    restartButton.DrawWithHover(mousePosition);
+                    menuButton.DrawWithHover(mousePosition);
+                    exitButton.DrawWithHover(mousePosition);
+                }
+
+                else if (B1.InsuffMaterial)
+                {
+                    const char *title = "DRAW";
+                    const char *reason = "Insufficient Material";
+                    Color accent = {180, 180, 180, 220};
+
+                    DrawRectangleRounded({922, 70, 364, 180}, 0.06f, 8, Fade(BLACK, 0.55f));
+                    DrawRectangleRoundedLines({922, 70, 364, 180}, 0.06f, 8, Fade(RAYWHITE, 0.15f));
+                    DrawRectangleRounded({932, 80, 344, 4}, 0.5f, 4, accent);
+
+                    int titleW = MeasureText(title, 36);
+                    DrawText(title, 1104 - titleW / 2, 135, 36, RAYWHITE);
+                    int reasonW = MeasureText(reason, 18);
+                    DrawText(reason, 1104 - reasonW / 2, 165, 18, BEIGE);
+
+                    restartButton.SetDrawScale(0.70f);
+                    menuButton.SetDrawScale(0.70f);
+                    exitButton.SetDrawScale(0.70f);
+
                     Button::UpdateThreeButtonPositionsInPanel(
                         restartButton, menuButton, exitButton, 914.0f, 380.0f, 320.0f);
                     // Draw buttons
@@ -635,32 +695,32 @@ int main()
 
                 else if (B1.Resigned)
                 {
-                    const char *title = "RESIGNATION";                    
+                    const char *title = "RESIGNATION";
                     const char *winner = (B1.resignedPlayer == 1) ? "Black Wins!" : "White Wins!";
-                    Color accent = {220, 80, 80, 220}; 
-                    
+                    Color accent = {220, 80, 80, 220};
+
                     DrawRectangleRounded({922, 70, 364, 180}, 0.06f, 8, Fade(BLACK, 0.55f));
                     DrawRectangleRoundedLines({922, 70, 364, 180}, 0.06f, 8, Fade(RAYWHITE, 0.15f));
-                    DrawRectangleRounded({932, 80, 344, 4}, 0.5f, 4, accent); 
+                    DrawRectangleRounded({932, 80, 344, 4}, 0.5f, 4, accent);
 
                     int titleW = MeasureText(title, 30);
-                    DrawText(title, 1104 - titleW/ 2, 110, 30, RED);
+                    DrawText(title, 1104 - titleW / 2, 110, 30, RED);
                     int winnerW = MeasureText(winner, 24);
-                    DrawText(winner, 1104 - winnerW / 2, 165, 24, BEIGE); 
+                    DrawText(winner, 1104 - winnerW / 2, 165, 24, BEIGE);
 
-                    restartButton.SetDrawScale(0.70f); 
-                    menuButton.SetDrawScale(0.70f); 
-                    exitButton.SetDrawScale(0.70f); 
+                    restartButton.SetDrawScale(0.70f);
+                    menuButton.SetDrawScale(0.70f);
+                    exitButton.SetDrawScale(0.70f);
 
                     Button::UpdateThreeButtonPositionsInPanel(restartButton,
-                                                       menuButton,exitButton,914.0f,380.0f,320.0f);
+                                                              menuButton, exitButton, 914.0f, 380.0f, 320.0f);
                     restartButton.DrawWithHover(mousePosition);
                     menuButton.DrawWithHover(mousePosition);
                     exitButton.DrawWithHover(mousePosition);
                 }
 
-            else
-                {    
+                else
+                {
                     B1.DrawMoveHistory(B1.IsReviewing() ? B1.GetReviewIndex() : -1);
                     if (!B1.IsReviewing())
                     {
@@ -668,26 +728,35 @@ int main()
                         resignButton.SetPosition({1030.0f, 940.0f});
                         resignButton.DrawWithHover(mousePosition);
                     }
-                    if ( !B1.IsReviewing()){
+                    if (!B1.IsReviewing())
+                    {
                         B1.UpdateDragging();
                         B1.HandleClickToMove();
                     }
-                    if (!B1.IsReviewing() && appState == ENGINE_GAME && engine != nullptr && !B1.Checkmate && !B1.Stalemate && !B1.PawnPromo && !B1.Resigned && !Paused && chessGameState.getCurrentPlayer() == engineColor)
+                    if (!B1.IsReviewing() && appState == ENGINE_GAME && engine != nullptr && !B1.Checkmate && !B1.Stalemate && !B1.InsuffMaterial && !B1.PawnPromo && !B1.Resigned && !Paused && chessGameState.getCurrentPlayer() == engineColor)
                     {
                         if (deferEngineMoveOneFrame)
                         {
                             deferEngineMoveOneFrame = false;
                         }
-                        else
+                        else if (!engineQueryIssuedForCurrentPosition)
                         {
+                            engineQueryIssuedForCurrentPosition = true;
                             EngineMove em = engine->getMove(B1.uciMoveList);
                             if (em.isValid)
                             {
-                                B1.ApplyEngineMove(em);
+                                if (!B1.ApplyEngineMove(em))
+                                {
+                                    std::cerr << "Engine move was rejected by the board." << std::endl;
+                                    engineQueryIssuedForCurrentPosition = false;
+                                }
+                            }
+                            else
+                            {
+                                engineQueryIssuedForCurrentPosition = false;
                             }
                         }
                     }
-
                 }
             }
         }
