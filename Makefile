@@ -148,6 +148,10 @@ EXAMPLE_RUNTIME_PATH   ?= $(RAYLIB_RELEASE_PATH)
 # NOTE: define g++ compiler if using C++
 CC = g++
 
+# Windows resource compiler (for icon embedding)
+WINDRES = windres
+RES_OBJ = resource/app.res
+
 ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),OSX)
         # OSX default compiler
@@ -208,7 +212,6 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),WINDOWS)
         # resource file contains windows executable icon and properties
         CFLAGS += -mwindows
-        CFLAGS += $(RAYLIB_PATH)/src/raylib.rc.data
     endif
     ifeq ($(PLATFORM_OS),LINUX)
         ifeq ($(RAYLIB_LIBTYPE),STATIC)
@@ -387,8 +390,12 @@ all:
 	$(MAKE) $(MAKEFILE_PARAMS)
 
 # Project target defined by PROJECT_NAME
-$(PROJECT_NAME): $(OBJS)
-	$(CC) -o $(PROJECT_NAME)$(EXT) $(OBJS) $(CFLAGS) $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS) -D$(PLATFORM)
+$(PROJECT_NAME): $(OBJS) $(RES_OBJ)
+	$(CC) -o $(PROJECT_NAME)$(EXT) $(OBJS) $(RES_OBJ) $(CFLAGS) $(INCLUDE_PATHS) $(LDFLAGS) $(LDLIBS) -D$(PLATFORM)
+
+# Compile Windows resource files (.rc -> .res)
+%.res: %.rc
+	$(WINDRES) $< -O coff $@
 
 # Compile source files
 # NOTE: This pattern will compile every module defined on $(OBJS)
@@ -400,7 +407,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 clean:
 ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),WINDOWS)
-		del *.o *.exe /s
+		del *.o *.exe *.res /s
     endif
     ifeq ($(PLATFORM_OS),LINUX)
 	find -type f -executable | xargs file -i | grep -E 'x-object|x-archive|x-sharedlib|x-executable' | rev | cut -d ':' -f 2- | rev | xargs rm -fv

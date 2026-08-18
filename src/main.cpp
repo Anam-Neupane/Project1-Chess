@@ -9,6 +9,7 @@
 #include "ui/slider.hpp"
 #include <algorithm>
 // #include <cstddef>
+#include "ui/platform_win32.hpp"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -46,6 +47,10 @@ int main()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
     InitWindow(screenWidth, screenHeight - 155, "♟️ Chess");
+
+#ifdef _WIN32
+    SetWindowIconFromResource(GetWindowHandle());
+#endif
 
     SetWindowMinSize(800, 600); // minimum window size
 

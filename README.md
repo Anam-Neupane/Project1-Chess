@@ -10,6 +10,96 @@ This project is an in-progress chess application with:
 - Menu system, difficulty slider and game state handling
 - UI assets and buttons for navigation
 
+## How to Play & Controls
+
+### 1. Main Menu
+
+Three buttons are shown on the main menu:
+
+<img src="resource/Menu.png" alt="Main Menu" width="500" />
+
+| Button | Action |
+|--------|--------|
+| **[Start]** | Start a local 1v1 game (Player vs Player) |
+| **[Engine]** | Start a game against the computer (Player vs Engine) |
+| **[Exit]** | Close the game |
+
+### 2. Engine Mode Setup
+
+After clicking **[Engine]**, a setup screen appears:
+
+<img src="resource/Engine_Menu.png" alt="Engine Menu" width="500" />
+
+- **Engine Toggle** - Click to switch between Stockfish and Neural Bot
+- **Difficulty** - Drag the slider (1-20) to set engine strength
+- **[White Piece]** - Play as White (you move first)
+- **[Black Piece]** - Play as Black (engine moves first)
+
+Click anywhere outside the panel to cancel and return to the menu.
+
+### In-Game Controls
+
+| Input | Action |
+|-------|--------|
+| **Mouse (Left-Click + Drag)** | Pick up a piece and drag it to a square to move |
+| **Mouse (Click-to-Move)** | Left-click a piece to select it, then left-click the destination square |
+| **SPACE** | Pause / Resume the game |
+| **M** | Toggle valid move highlights on/off |
+| **H** | Toggle the move history panel on/off in the side bar |
+| **LEFT / RIGHT Arrow** | Step backward / forward through move history |
+| **Resign Button** | Resign the current game (bottom-right during play) |
+
+### 3. Pause Menu
+
+Press **SPACE** during a game to pause. While paused you can:
+
+<img src="resource/Paused.png" alt="Paused Menu" width="500" />
+
+- **[Restart]** - Reset the board and start a new game
+- **[Main Menu]** - Return to the main menu
+- **[Exit]** - Close the game
+
+### 4. Pawn Promotion
+
+When a pawn reaches the last rank, a promotion panel appears. Click one of the four pieces: **Queen / Rook / Bishop / Knight**
+
+<img src="resource/Promotion_menu.png" alt="Promotion Menu" width="500" />
+
+### 5. Game Over
+
+The game ends by Checkmate, Stalemate, Insufficient Material, or Resignation:
+
+<img src="resource/Gameover.png" alt="Gameover Menu" width="500" />
+
+- **Checkmate** - One side wins. The winner is displayed.
+- **Stalemate** - Draw. Neither side has a legal move.
+- **Insufficient Material** - Draw. Not enough pieces to checkmate.
+- **Resignation** - The other side wins.
+
+After the game ends, three buttons appear: **[Restart]**, **[Main Menu]**, **[Exit]**
+
+### 6. Move Review
+
+Use **LEFT/RIGHT arrow keys** to browse through the move history. The board updates to show each past position. Press any mouse button or make a move to exit review mode.
+
+<img src="resource/Review.png" alt="Review mode" width="500" />
+
+### 7. Board Highlights
+
+| Highlight | Meaning |
+|-----------|---------|
+| Green squares | Last move played (from and to squares) |
+| Red glow | King is in check |
+| Purple dots | Valid move indicators (toggle with M) |
+
+### 8. Side Panel
+
+The right-side panel displays:
+- Whose turn it is
+- Captured pieces for both sides
+- Score estimate
+- Move history (toggle with H)
+
 ## Tech Stack
 
 - C++14
@@ -206,54 +296,65 @@ Notes:
 |-- Makefile
 |-- README.md
 |-- Documentation/
+|-- engines/
+|   `-- neural-bot/
+|       `-- _internal/
+|           |-- checkpoints/        (PyTorch model weights)
+|           |-- torch/
+|           |-- numpy/
+|           `-- ... (bundled Python runtime)
 |-- lib/
+|   |-- httplib.h                   (cpp-httplib header-only HTTP library)
+|   |-- json.hpp                    (nlohmann/json header-only JSON library)
 |   |-- libgcc_s_dw2-1.dll
 |   `-- libstdc++-6.dll
 |-- resource/
-|   |-- board0.png
-|   |-- board1.png
-|   |-- cut.png
+|   |-- app.rc / app.res            (Windows resource files)
+|   |-- background.jpg
+|   |-- black.png / white.png
+|   |-- board0.png / board1.png
+|   |-- Engine_Menu.png
 |   |-- figure1.png
+|   |-- Gameover.png
 |   |-- howto.png
+|   |-- Icon.ico / Icon-01.ico
 |   |-- mainmenu.png
-|   |-- New.png
-|   |-- Picture1.png
-|   |-- Picture2.png
-|   |-- Picture3.png
+|   |-- Menu.png
+|   |-- Paused.png
+|   |-- Picture1.png / Picture2.png / Picture3.png
+|   |-- Promotion_menu.png
+|   |-- resign.png
 |   |-- restart.png
-|   `-- Start.png
+|   `-- Review.png
 `-- src/
-	|-- main.cpp
-	|-- core/
-	|   |-- Board.cpp
-	|   |-- Board.hpp
-	|   |-- Constants.hpp
-	|   |-- GameState.cpp
-	|   |-- GameState.hpp
-	|   |-- MoveHistory.cpp
-	|   |-- MoveHistory.hpp
-	|   |-- Piece.hpp
-	|   `-- moves/
-	|       |-- cpp/
-	|       |   |-- MoveGeneration.cpp
-	|       |   |-- MoveSimulation.cpp
-	|       |   |-- MoveValidator.cpp
-	|       |   `-- PieceMovement.cpp
-	|       `-- hpp/
-	|           |-- MoveGeneration.hpp
-	|           |-- MoveSimulation.hpp
-	|           |-- MoveUtils.hpp
-	|           |-- MoveValidator.hpp
-	|           `-- PieceMovement.hpp
-	|-- engine/
-	|   |-- ChessEngine.hpp
-	|   |-- EngineMove.hpp
-	|   |-- StockfishEngine.cpp
-	|   `-- StockfishEngine.hpp
-	`-- ui/
-		|-- button.cpp
-		|-- button.hpp
-		`-- slider.hpp
+    |-- main.cpp
+    |-- core/
+    |   |-- Board.cpp / Board.hpp
+    |   |-- Constants.hpp
+    |   |-- GameState.cpp / GameState.hpp
+    |   |-- MoveHistory.cpp / MoveHistory.hpp
+    |   |-- Piece.hpp
+    |   `-- moves/
+    |       |-- cpp/
+    |       |   |-- MoveGeneration.cpp
+    |       |   |-- MoveSimulation.cpp
+    |       |   |-- MoveValidator.cpp
+    |       |   `-- PieceMovement.cpp
+    |       `-- hpp/
+    |           |-- MoveGeneration.hpp
+    |           |-- MoveSimulation.hpp
+    |           |-- MoveUtils.hpp
+    |           |-- MoveValidator.hpp
+    |           `-- PieceMovement.hpp
+    |-- engine/
+    |   |-- ChessEngine.hpp
+    |   |-- EngineMove.hpp
+    |   |-- NeuralEngine.cpp / NeuralEngine.hpp
+    |   |-- StockfishEngine.cpp / StockfishEngine.hpp
+    `-- ui/
+        |-- button.cpp / button.hpp
+        |-- platform_win32.cpp / platform_win32.hpp
+        `-- slider.hpp
 ```
 
 ## Common Issues
